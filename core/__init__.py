@@ -1,3 +1,4 @@
+from csv import DictWriter
 from logging import getLogger
 
 from .connector import *
@@ -21,14 +22,21 @@ class Project:
                     api.metadata("export"), api.field_names("export")
                 )
 
-    def export_resource(self, resource, **parameters):
+    def export_resource(self, resource, path=None, **parameters):
         """WIP"""
         if not hasattr(self, "api"):
             raise NotImplementedError("No API connector")
         with self.api as api:
             if resource == "record":
                 data = getattr(api, resource)("export", **parameters)
-                return self.metadata.load_record(data)
+                if path is None:
+                    return self.metadata.load_record(data)
+                else:
+                    with open(path, "w", newline="") as fp:
+                        writer = DictWriter(fp, fieldnames=COLUMNS)
+                        writer.writeheader()
+                        for record in data:
+                            writer.write(record)
 
     def import_resource(self, resource, data, **parameters):
         """WIP"""

@@ -36,35 +36,35 @@ class BaseConnector(client.HTTPSConnection):
                     response.headers.get("content-length")
                 )
                 if self.path_stack[-1] != self.path_stack[0]:
-                    self.path_stack[-1] = self.path_stack[0]
+                    self.path_stack.append(self.path_stack[0])
                 return response
-            elif (
-                HTTPStatus.MULTIPLE_CHOICES
-                <= response.status <
-                HTTPStatus.BAD_REQUEST
-            ):
-                # TODO: perform certain retries
-                LOGGER.info(
-                    "following redirect: link=%s",
-                    response.headers.get("link")
-                )
-                redirect_path = self.parse_link_header(
-                    response.headers.get("link")
-                )
-                self.path_stack.append(redirect_path)
-                return self.post(request)
-            elif (
-                HTTPStatus.BAD_REQUEST
-                <= response.status <=
-                HTTPStatus.INTERNAL_SERVER_ERROR
-            ):
-                # TODO: perform certain retries
-                LOGGER.error(
-                    "bad request: status=%i, reason=%s",
-                    response.status, response.reason
-                )
-                return None
-            elif HTTPStatus.INTERNAL_SERVER_ERROR <= response.status:
+            else: #(
+            #     HTTPStatus.MULTIPLE_CHOICES
+            #     <= response.status <
+            #     HTTPStatus.BAD_REQUEST
+            # ):
+            #     # TODO: perform certain retries
+            #     LOGGER.info(
+            #         "following redirect: link=%s",
+            #         response.headers.get("link")
+            #     )
+            #     redirect_path = self.parse_link_header(
+            #         response.headers.get("link")
+            #     )
+            #     self.path_stack.append(redirect_path)
+            #     return self.post(request)
+            # elif (
+            #     HTTPStatus.BAD_REQUEST
+            #     <= response.status <=
+            #     HTTPStatus.INTERNAL_SERVER_ERROR
+            # ):
+            #     # TODO: perform certain retries
+            #     LOGGER.error(
+            #         "bad request: status=%i, reason=%s",
+            #         response.status, response.reason
+            #     )
+            #     return None
+            # elif HTTPStatus.INTERNAL_SERVER_ERROR <= response.status:
                 # TODO: perform certain retries
                 LOGGER.error(
                     "API issues: status=%i, reason=%s",
@@ -72,6 +72,24 @@ class BaseConnector(client.HTTPSConnection):
                 )
                 return None
 
+    def prepare_data(self, data):
+        """Set a file-like body"""
+        if isinstance(data, (dict, list, tuple)):
+            data = BytesIO(urlencode(data).encode("latin-1"))
+        if not isinstance(data, IOBase):
+            raise RuntimeError("Unable to build body")
+        return data
+
+    def set_effective_headers(self, action):
+        if action == "delete":
+            self.effective_headers = self.delete_headers
+        elif action == "export":
+            self.effective_headers = self.export_headers
+        elif action == "import":
+            self.effective_headers = self.import_headers
+        else:
+            raise RuntimeError("No such action :/")
+            
     def parse_link_header(self, header):
         """Returns a URL from link header value"""
         raise NotImplementedError
@@ -88,53 +106,45 @@ class Connector(BaseConnector):
         self.token = token
         self.method = "POST"
         super().__init__(host)
-
-    def prepare_data(self, data):
-        """Set a file-like body"""
-        if isinstance(data, (dict, list, tuple)):
-            data = BytesIO(urlencode(data).encode("latin-1"))
-        if not isinstance(data, IOBase):
-            raise RuntimeError("Unable to build body")
-        return data
         
-    def arms(self, data=None, **parameters):
+    def arms(self, action, data=None, **parameters):
         pass
 
-    def events(self, data=None, **parameters):
+    def events(self, action, data=None, **parameters):
         pass
 
-    def field_names(self, data=None, **parameters):
+    def field_names(self, action, data=None, **parameters):
         pass
 
-    def files(self, data=None, **parameters):
+    def files(self, action, data=None, **parameters):
         # PIL for images?
         pass
 
-    def instruments(self, data=None, **parameters):
+    def instruments(self, action, data=None, **parameters):
         pass
 
-    def metadata(self, data=None, **parameters):
+    def metadata(self, action, data=None, **parameters):
         pass
 
-    def projects(self, data=None, **parameters):
+    def projects(self, action, data=None, **parameters):
         pass
 
-    def records(self, data=None, **parameters):
+    def records(self, action, data=None, **parameters):
         pass
         
-    def repeating_ie(self, data=None, **parameters):
+    def repeating_ie(self, action, data=None, **parameters):
         pass
 
-    def reports(self, data=None, **parameters):
+    def reports(self, action, data=None, **parameters):
         pass
 
-    def redcap(self, data=None, **parameters):
+    def redcap(self, action, data=None, **parameters):
         pass
 
-    def surveys(self, data=None, **parameters):
+    def surveys(self, action, data=None, **parameters):
         pass
 
-    def users(self, data=None, **parameters):
+    def users(self, action, data=None, **parameters):
         pass
 
     def __enter__(self):
@@ -144,7 +154,6 @@ class Connector(BaseConnector):
 
     def __exit__(self, typ, val, trb):
         self.close()
-        return False
 
 
 __all__ = ["Connector"]

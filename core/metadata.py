@@ -93,7 +93,7 @@ RECORD_TYPE_MAP = {
     "number": (
         lambda n: Decimal(sub(r",", ".", n), context=DCM["number"]),
         lambda n: str(n),
-        "FLOAT"
+        "FLOAT",
     ),
     "number_1dp_comma_decimal": (
         lambda n: Decimal(
@@ -163,7 +163,7 @@ RECORD_TYPE_MAP = {
     "time_mm_ss": (
         lambda t: time.strptime(t, "%M:%S"),
         lambda t: t.strftime("%M:%S"),
-        "TIME"
+        "TIME",
     ),
     "vmrn": (lambda s: s, lambda s: s, "TEXT",),
     "Zipcode": (lambda s: s, lambda s: s, "TEXT",),
@@ -182,8 +182,7 @@ class Metadata(dict):
 
     def __init__(self, raw_metadata=None, raw_field_names=None):
         """Contructor"""
-        if raw_field_names is not None and raw_metadata is not None:
-            self.headers = list(raw_metadata[0].keys())
+        if raw_metadata is not None and raw_field_names is not None:
             self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
             self.raw_field_names = {
                 d["export_field_name"]: d for d in raw_field_names
@@ -202,7 +201,9 @@ class Metadata(dict):
             self.__setitem__(key, raw_metadatum)
         return super().__getitem__(key)
         
-    def evaluate_logic(self, logic):
+    def evaluate_logic(self, record):
+        """Return truthness of record's branching logic"""
+        if not record: return None
         try: logic = eval(logic)
         except SyntaxError: logic = eval(self.load_logic(logic))
         else: return logic
@@ -256,8 +257,8 @@ class Metadata(dict):
             ][1](v)
         return record
 
-    def write(self, path, fmt="csv", **kwargs):
-        """Write formatted metadata to path"""
+    def dump(self, path, fmt="csv", **kwargs):
+        """Dump formatted metadata to path"""
         for field_name in self:
             self[field_name]["branching_logic"] = self.dump_logic(
                 self[field_name]["branching_logic"]
@@ -305,6 +306,14 @@ class Metadata(dict):
             self[field_name]["branching_logic"] = self.load_logic(
                 self[field_name]["branching_logic"]
             )
+
+    def load(self, raw_metadata, raw_field_names):
+        """Load metadata from raw metadata and raw field names"""
+        self.raw_metadata = raw_metadata
+        self.raw_field_names = raw_field_names
+        if len(self) > 0:
+            for key in list(self.keys()):
+                del self[key]
 
 
 __all__ = ["Metadata"]
