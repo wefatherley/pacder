@@ -7,6 +7,7 @@ from re import compile, finditer, sub
 
 from .util import record_type_map
 
+
 LOGGER = getLogger(__name__)
 
 
@@ -35,7 +36,7 @@ DUMP_OPERATOR_RE = compile(r"==|!=")
 class Metadata(dict):
     """REDCap metadata abstraction"""
 
-    def __init__(self, raw_metadata=None, raw_field_names=None):
+    def __init__(self, raw_metadata={}, raw_field_names={}):
         """Contructor"""
         if raw_metadata is not None and raw_field_names is not None:
             self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
@@ -69,7 +70,9 @@ class Metadata(dict):
         for match in LOAD_VARIABLE_RE.finditer(logic):
             var_str = match.group(0).strip("[]")
             if "(" in var_str and ")" in var_str:
-                var_str = "___".join(s.strip(")") for s in var_str.split("("))
+                var_str = "___".join(
+                    s.strip(")") for s in var_str.split("(")
+                )
             var_str = "record['" + var_str + "']"
             logic = logic[:match.start()] + var_str + logic[:match.end()]
         for match in LOAD_OPERATOR_RE.finditer(logic):
@@ -98,6 +101,8 @@ class Metadata(dict):
 
     def dump(self, path, fmt="csv", **kwargs):
         """Dump formatted metadata to path"""
+        if len(self) == 0 or len(self.raw_metadata) == 0:
+            raise Exception("Cannot dump empty metadata")
         for field_name in self:
             self[field_name]["branching_logic"] = self.dump_logic(
                 self[field_name]["branching_logic"]
@@ -125,7 +130,10 @@ class Metadata(dict):
                     table_groups = "field_type"
                 key = lambda d: d[table_groups]
                 for table, columns in groupby(
-                    sorted(list(self.values()) + self.raw_metadata, key=key),
+                    sorted(
+                        list(self.values()) + self.raw_metadata,
+                        key=key
+                    ),
                     key=key
                 ):
                     fp.write(SQL.create_table.format(schema + table))
@@ -134,9 +142,7 @@ class Metadata(dict):
                             SQL.add_column.format(
                                 schema + table,
                                 c["field_name"],
-                                record_type_map[
-                                    c["text_validation_type_or_show_slider_number"]
-                                ][2]
+                                record_type_map[c[COLUMNS[7]]][2]
                             )
                         )
         elif fmt == "html_table":
@@ -155,4 +161,4 @@ class Metadata(dict):
                 del self[key]
 
 
-__all__ = ["Metadata"]
+__all__ = ["Metadata",]

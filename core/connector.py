@@ -106,45 +106,68 @@ class Connector(BaseConnector):
         self.token = token
         self.method = "POST"
         super().__init__(host)
+
+    def delete_resource(self, resource, data, **parameters):
+        """WIP"""
+        pass
+
+    def export_resource(self, resource, path=None, **parameters):
+        """WIP"""
+        pass
+
+    def import_resource(self, resource, data, **parameters):
+        """WIP"""
+        pass
         
     def arms(self, action, data=None, **parameters):
         pass
 
     def events(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def field_names(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def files(self, action, data=None, **parameters):
-        # PIL for images?
+        """WIP"""
         pass
 
     def instruments(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def metadata(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def projects(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def records(self, action, data=None, **parameters):
+        """WIP"""
         pass
         
     def repeating_ie(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def reports(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def redcap(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def surveys(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def users(self, action, data=None, **parameters):
+        """WIP"""
         pass
 
     def __enter__(self):
@@ -156,4 +179,4 @@ class Connector(BaseConnector):
         self.close()
 
 
-__all__ = ["Connector"]
+__all__ = ["Connector",]

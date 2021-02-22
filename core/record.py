@@ -17,6 +17,3 @@ class Record(dict):
             self[k] = record_type_map[
                 metadata[k]["text_validation_type_or_show_slider_number"]
             ][1](v)
-
-
-def record_factory(): pass
