@@ -15,6 +15,16 @@ class BaseConnector(client.HTTPSConnection):
     delete_headers = {}
     export_headers = {}
     import_headers = {}
+
+    def __enter__(self):
+        """Enter context"""
+        if self.sock is None:
+            self.connect()
+        return self
+
+    def __exit__(self, typ, val, trb):
+        """Exit context"""
+        self.close()
     
     def post(self, data):
         """Handles POST procedure. Returns HTTPResponse object"""
@@ -107,7 +117,7 @@ class Connector(BaseConnector):
         self.method = "POST"
         super().__init__(host)
 
-    def delete_resource(self, resource, data, **parameters):
+    def delete_resource(self, resource, **parameters):
         """WIP"""
         pass
 
@@ -169,14 +179,6 @@ class Connector(BaseConnector):
     def users(self, action, data=None, **parameters):
         """WIP"""
         pass
-
-    def __enter__(self):
-        if self.sock is None:
-            self.connect()
-        return self
-
-    def __exit__(self, typ, val, trb):
-        self.close()
 
 
 __all__ = ["Connector",]
