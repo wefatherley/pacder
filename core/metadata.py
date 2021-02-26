@@ -146,13 +146,5 @@ class Metadata(dict):
                 self[field_name]["branching_logic"]
             )
 
-    def load(self, raw_metadata, raw_field_names):
-        """Load metadata from raw metadata and raw field names"""
-        self.raw_metadata = raw_metadata
-        self.raw_field_names = raw_field_names
-        if len(self) > 0:
-            for key in list(self.keys()):
-                del self[key]
-
 
 __all__ = ["Metadata"]

@@ -33,7 +33,7 @@ class BaseConnector(client.HTTPSConnection):
             if response.status == HTTPStatus.OK:
                 LOGGER.info(
                     "response received sucessfully: octets=%s",
-                    response.headers.get("content-length")
+                    response.headers.get("content-length", "NA")
                 )
                 if self.path_stack[-1] != self.path_stack[0]:
                     self.path_stack.append(self.path_stack[0])
@@ -117,7 +117,6 @@ class Connector(BaseConnector):
         pass
 
     def files(self, action, data=None, **parameters):
-        # PIL for images?
         pass
 
     def instruments(self, action, data=None, **parameters):
