@@ -1,9 +1,8 @@
-from csv import DictWriter
 from logging import getLogger
 
-from .connector import *
-from .metadata import *
-from .record import *
+from .connector import Connector
+from .metadata import Metadata
+from .record import Record
 
 
 LOGGER = getLogger(__name__)
@@ -22,3 +21,13 @@ class Project:
                 self.metadata = Metadata(
                     api.metadata("export"), api.field_names("export")
                 )
+        
+    def records(self, **query):
+        """Generator of redcapp record instances"""
+        with self.api as api:
+            records_json = api.records("export", **query)
+            while len(records) != 0:
+                yield Record(records.pop())
+
+
+__all__ = ["Connector", "Metadata", "Project", "Record",]

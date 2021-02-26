@@ -145,3 +145,6 @@ record_type_map = {
     "Zipcode": (lambda s: s, lambda s: s, "TEXT",),
     "": (lambda s: s, lambda s: s, "TEXT",),
 }
+
+
+__all__ = ["record_type_map",]
