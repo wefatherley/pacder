@@ -1,3 +1,4 @@
+from collections import namedtuple
 from logging import getLogger
 
 from .connector import Connector
@@ -6,6 +7,9 @@ from .record import Record
 
 
 LOGGER = getLogger(__name__)
+
+
+Datum = namedtuple("Datum", ["original_field_name", "value", "logic"])
 
 
 class Project:
@@ -22,12 +26,23 @@ class Project:
                     api.metadata("export"), api.field_names("export")
                 )
         
-    def records(self, **query):
-        """Generator of redcapp record instances"""
+    def records(self, key=None, **query):
+        """Generate records"""
         with self.api as api:
             records_json = api.records("export", **query)
-            while len(records) != 0:
-                yield Record(records.pop())
+        if key is not None:
+            records_json.sort(key=key)
+        while len(records) != 0:
+            record = records.pop()
+            for key in record.keys():
+                record[key] = Datum(
+                    self.metadata.raw_field_names[
+                        key
+                    ]["original_field_name"],
+                    record[key],
+                    self.metadata[key]["branching_logic"](record)
+                )
+            yield record
 
 
 __all__ = ["Connector", "Metadata", "Project", "Record",]

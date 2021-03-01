@@ -56,16 +56,25 @@ class Metadata(dict):
             )
             self.__setitem__(key, raw_metadatum)
         return super().__getitem__(key)
-        
-    def evaluate_logic(self, record):
-        """Return truthness of record's branching logic"""
-        if not record: return None
-        try: logic = eval(logic)
-        except SyntaxError: logic = eval(self.load_logic(logic))
-        else: return logic
+
+    def load_record(self, record):
+        """Return record with Python typing"""
+        for k,v in record.items():
+            record[k] = record_type_map[
+                self[k]["text_validation_type_or_show_slider_number"]
+            ][0](v)
+        return record
+
+    def dump_record(self, record):
+        """Return Pythonic record as JSON-compliant dict"""
+        for k,v in record.items():
+            record[k] = record_type_map[
+                self[k]["text_validation_type_or_show_slider_number"]
+            ][1](v)
+        return record
 
     def load_logic(self, logic):
-        """Convert REDCap logic syntax to Python logic syntax"""
+        """Return evaluable branching logic"""
         if not logic: return ""
         for match in LOAD_VARIABLE_RE.finditer(logic):
             var_str = match.group(0).strip("[]")
@@ -80,7 +89,7 @@ class Metadata(dict):
             if ope_str == "=": ope_str = "=="
             elif ope_str == "<>": ope_str = "!="
             logic = logic[:match.start()] + ope_str + logic[:match.end()]
-        return logic
+        return lambda record: eval(logic)
 
     def dump_logic(self, logic):
         """Convert Python logic syntax to REDCap logic syntax"""

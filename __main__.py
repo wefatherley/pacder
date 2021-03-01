@@ -42,7 +42,5 @@ if args.command == "run":
     except (EOFError, KeyboardInterrupt):
         exit("Session interrupted")
 
-
-
 elif args.command == "test":
     pass
