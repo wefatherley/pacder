@@ -3,7 +3,6 @@ from logging import getLogger
 
 from .connector import Connector
 from .metadata import Metadata
-from .record import Record
 
 
 LOGGER = getLogger(__name__)
@@ -29,11 +28,11 @@ class Project:
     def records(self, key=None, **query):
         """Generate records"""
         with self.api as api:
-            records_json = api.records("export", **query)
+            records = api.records("export", **query)
         if key is not None:
-            records_json.sort(key=key)
-        while len(records) != 0:
-            record = records.pop()
+            records.sort(key=key)
+        while any(records):
+            record = self.metadata.load_record(records.pop())
             for key in record.keys():
                 record[key] = Datum(
                     self.metadata.raw_field_names[
@@ -45,4 +44,4 @@ class Project:
             yield record
 
 
-__all__ = ["Connector", "Metadata", "Project", "Record",]
+__all__ = ["Connector", "Metadata", "Project",]

@@ -11,7 +11,7 @@ LOGGER = getLogger(__name__)
 class BaseConnector(client.HTTPSConnection):
     """HTTP methods container"""
 
-    path_stack = list()
+    path_stack = []
     delete_headers = {}
     export_headers = {}
     import_headers = {}
