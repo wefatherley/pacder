@@ -1,7 +1,7 @@
 """Metadata object"""
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
-from itertools import groupby
+from itertools import groupby, zip_longest
 from logging import getLogger
 from re import compile, finditer, sub
 
@@ -20,7 +20,9 @@ HTML = """
     content="width=device-width, initial-scale=1.0"
   >
   </head>
-  <body><table style="width:100%">{}</table></body>
+  <body>
+    <table style="width:100%">{}</table>
+  </body>
   </html>
 """.strip()
 
@@ -46,16 +48,18 @@ COLUMNS = [
 
 
 LOAD_VARIABLE_RE = compile(r"\[[\w()]+\]")
-LOAD_OPERATOR_RE = compile(r"<>|\s=\s|\w=\w")
+LOAD_OPERATOR_RE = compile(r"(?<![<\|>]{1})=|<>")
 DUMP_VARIABLE_RE = compile(r"record\['[\w]+'\]")
 DUMP_OPERATOR_RE = compile(r"==|!=")
 
 
 class Metadata:
-    """REDCap metadata abstraction"""
+    """Container for REDCap metadata"""
 
     def __getitem__(self, key):
         """Get metadatum"""
+        if len(self.raw_field_names) == 0:
+            raise Exception("No export field names!!")
         metadatum = self.raw_metadata[
             self.raw_field_names[key]["original_field_name"]
         ]
@@ -65,7 +69,7 @@ class Metadata:
         return metadatum
 
     def __init__(self, raw_metadata={}, raw_field_names={}):
-        """Contructor"""
+        """Contruct attributes"""
         self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
         self.raw_field_names = {
             d["export_field_name"]: d for d in raw_field_names
@@ -83,22 +87,32 @@ class Metadata:
     def load_logic(cls, logic, as_func=False):
         """Return evaluable branching logic"""
         if not logic:
+            if as_func: return lambda record: None
             return ""
-        for match in LOAD_VARIABLE_RE.finditer(logic):
-            var_str = match.group(0).strip("[]")
-            if "(" in var_str and ")" in var_str:
-                var_str = "___".join(
-                    s.strip(")") for s in var_str.split("(")
+        logic_fragments = zip_longest(
+            LOAD_VARIABLE_RE.split(logic),
+            [m.group(0) for m in LOAD_VARIABLE_RE.finditer(logic)],
+            fillvalue=""
+        )
+        logic = ""
+        for oper_frag, vari_frag in logic_fragments:
+            for match in LOAD_OPERATOR_RE.finditer(oper_frag):
+                ope_str = match.group(0)
+                if ope_str == "=": ope_str = "=="
+                elif ope_str == "<>": ope_str = "!="
+                oper_frag = (
+                    oper_frag[:match.start()]
+                    + ope_str
+                    + oper_frag[match.end():]
                 )
-            var_str = "record['" + var_str + "']"
-            logic = logic[:match.start()] + var_str + logic[:match.end()]
-        for match in LOAD_OPERATOR_RE.finditer(logic):
-            ope_str = match.group(0)
-            if ope_str == "=":
-                ope_str = "=="
-            elif ope_str == "<>":
-                ope_str = "!="
-            logic = logic[:match.start()] + ope_str + logic[:match.end()]
+            if vari_frag:
+                vari_frag = vari_frag.strip("[]")
+                if "(" in vari_frag and ")" in vari_frag:
+                    vari_frag = "___".join(
+                        s.strip(")") for s in vari_frag.split("(")
+                    )
+                vari_frag = "record['" + vari_frag + "']"
+            logic += oper_frag + vari_frag
         if as_func:
             return lambda record: eval(logic)
         return logic
@@ -116,13 +130,17 @@ class Metadata:
             logic = logic[:match.start()] + var_str + logic[:match.end()]
         for match in DUMP_OPERATOR_RE.finditer(logic):
             ope_str = match.group(0)
-            if ope_str == "==": ope_str = "="
-            elif ope_str == "!=": ope_str = "<>"
+            if ope_str == "==":
+                ope_str = "="
+            elif ope_str == "!=":
+                ope_str = "<>"
             logic = logic[:match.start()] + ope_str + logic[:match.end()]
         return logic
 
     def load_record(self, record):
         """Return record with Python typing"""
+        if len(self.raw_field_names) == 0:
+            raise Exception("No export field names!!")
         for k,v in record.items():
             k = self.raw_field_names[k]["original_field_name"]
             record[k] = record_type_map[
@@ -132,6 +150,8 @@ class Metadata:
 
     def dump_record(self, record):
         """Return Pythonic record as JSON-compliant dict"""
+        if len(self.raw_field_names) == 0:
+            raise Exception("No export field names!!")
         for k,v in record.items():
             k = self.raw_field_names[k]["original_field_name"]
             record[k] = record_type_map[
@@ -166,10 +186,16 @@ class Metadata:
         else:
             raise Exception("unsupported dump format")
 
-    def load(self):
-        """WIP"""
-        pass
-        
+    def load(self, path, fmt="csv"):
+        """Load formatted metadata from path"""
+        if fmt == "csv":
+            with open(path, "r", newline="") as fp:
+                reader = DictReader(fp, fieldnames=COLUMNS)
+                for row in reader:
+                    self[row["field_name"]] = row
+        else:
+            raise NotImplementedError("unsupported load format")
+
     def sql_migration(self, path, schema="", table_groups="field_type"):
         """Write a SQL migration file from metadata"""
         if schema: schema += "."
@@ -178,10 +204,7 @@ class Metadata:
             if table_groups not in COLUMNS:
                 raise Exception("Invalid table grouping :/")
             for table, columns in groupby(
-                sorted(
-                    list(self.values()) + self.raw_metadata,
-                    key=lambda d: d[table_groups]
-                ),
+                sorted(self.raw_metadata, key=lambda d: d[table_groups]),
                 key=lambda d: d[table_groups]
             ):
                 fp.write(SQL.create_table.format(schema + table))
