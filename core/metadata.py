@@ -2,6 +2,7 @@
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
 from itertools import groupby, zip_longest
+from json import load as load_json
 from logging import getLogger
 from re import compile, finditer, sub
 
@@ -38,18 +39,18 @@ class SQL:
 
 
 COLUMNS = [
-    "field_name", "form_name", "section_header", "field_type", "field_label",
-    "select_choices_or_calculations", "field_note",
+    "field_name", "form_name", "section_header", "field_type",
+    "field_label", "select_choices_or_calculations", "field_note",
     "text_validation_type_or_show_slider_number" ,"text_validation_min",
-    "text_validation_max", "identifier", "branching_logic", "required_field",
-    "custom_alignment", "question_number", "matrix_group_name", "matrix_ranking",
-    "field_annotation"
+    "text_validation_max", "identifier", "branching_logic",
+    "required_field", "custom_alignment", "question_number",
+    "matrix_group_name", "matrix_ranking", "field_annotation",
 ]
 
 
 LOAD_VARIABLE_RE = compile(r"\[[\w()]+\]")
 LOAD_OPERATOR_RE = compile(r"(?<![<\|>]{1})=|<>")
-DUMP_VARIABLE_RE = compile(r"record\['[\w]+'\]")
+DUMP_VARIABLE_RE = compile(r"record\['\w+'\]")
 DUMP_OPERATOR_RE = compile(r"==|!=")
 
 
@@ -59,7 +60,7 @@ class Metadata:
     def __getitem__(self, key):
         """Get metadatum"""
         if len(self.raw_field_names) == 0:
-            raise Exception("No export field names!!")
+            raise Exception("No export field names")
         metadatum = self.raw_metadata[
             self.raw_field_names[key]["original_field_name"]
         ]
@@ -77,11 +78,32 @@ class Metadata:
 
     def __iter__(self):
         """Return raw metadata iterator"""
-        return self.raw_metadata
+        return (m for m in self.raw_metadata)
 
     def __len__(self):
         """Return field count"""
         return len(self.raw_metadata)
+
+    def __setitem__(self, key, value):
+        """Set metadatum"""
+        if value["field_type"] == "checkbox":
+            self.raw_metadata[key] = value
+            for exported_key in [
+                field_name.split(",")[-1].strip()
+                for field_name in value[
+                    "select_choices_or_calculations"
+                ].split("|")
+            ]:
+                self.raw_field_names[exported_key] = {
+                    "original_field_name": key,
+                    "export_field_name": exported_key
+                }
+        else:
+            self.raw_metadata[key] = value
+            self.raw_field_names[key] = {
+                "original_field_name": key,
+                "export_field_name": key
+            }
 
     @classmethod
     def load_logic(cls, logic, as_func=False):
@@ -122,19 +144,30 @@ class Metadata:
         """Convert Python logic syntax to REDCap logic syntax"""
         if not logic:
             return ""
-        for match in DUMP_VARIABLE_RE.finditer(logic):
-            var_str = match.group(0).lstrip("record['").rstrip("']")
-            if "___" in var_str:
-                var_str = "(".join(var_str.split("___")) + ")"
-            var_str = "[" + var_str + "]"
-            logic = logic[:match.start()] + var_str + logic[:match.end()]
-        for match in DUMP_OPERATOR_RE.finditer(logic):
-            ope_str = match.group(0)
-            if ope_str == "==":
-                ope_str = "="
-            elif ope_str == "!=":
-                ope_str = "<>"
-            logic = logic[:match.start()] + ope_str + logic[:match.end()]
+        logic_fragments = zip_longest(
+            DUMP_VARIABLE_RE.split(logic),
+            [m.group(0) for m in DUMP_VARIABLE_RE.finditer(logic)],
+            fillvalue=""
+        )
+        logic = ""
+        for oper_frag, vari_frag in logic_fragments:
+            for match in DUMP_OPERATOR_RE.finditer(oper_frag):
+                ope_str = match.group(0)
+                if ope_str == "==": ope_str = "="
+                elif ope_str == "!=": ope_str = "<>"
+                oper_frag = (
+                    oper_frag[:match.start()]
+                    + ope_str
+                    + oper_frag[match.end():]
+                )
+            if vari_frag:
+                vari_frag = vari_frag.lstrip("record['").rstrip("']")
+                if "___" in vari_frag:
+                    vari_frag = "(".join(
+                        s for s in vari_frag.split("___")
+                    ) + ")"
+                vari_frag = "[" + vari_frag + "]"
+            logic += oper_frag + vari_frag
         return logic
 
     def load_record(self, record):
@@ -188,13 +221,29 @@ class Metadata:
 
     def load(self, path, fmt="csv"):
         """Load formatted metadata from path"""
+        if isinstance(path, str):
+            if fmt == "csv":
+                path = open(path, "r", newline="")
+            else: 
+                path = open(path, "r")
         if fmt == "csv":
             with open(path, "r", newline="") as fp:
                 reader = DictReader(fp, fieldnames=COLUMNS)
                 for row in reader:
                     self[row["field_name"]] = row
+        elif fmt == "json":
+            metadata = load_json(path)
+            while any(metadata):
+                metadatum = metadata.pop()
+                self[metadatum["field_name"]] = metadatum
+        elif fmt == "html":
+            metadata = HTMLParser(path)
+            while any(metadata):
+                metadatum = metadata.pop()
+                self[metadatum["field_name"]] = metadatum
         else:
-            raise NotImplementedError("unsupported load format")
+            raise Exception("unsupported load format")
+        path.close()
 
     def sql_migration(self, path, schema="", table_groups="field_type"):
         """Write a SQL migration file from metadata"""
