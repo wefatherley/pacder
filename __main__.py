@@ -1,46 +1,49 @@
 from argparse import ArgumentParser
-from logging import basicConfig, INFO, getLogger, WARN
+from http import server, HTTPStatus
+from io import StringIO
+from logging import basicConfig, getLogger, INFO
 from os import environ
+from shutil import copyfileobj
 from sys import exit
-
 
 from . import Project
 
 
-basicConfig(
-    format="%(asctime)s - %(name)s - %(message)s",
-    level=INFO
-)
+class Service(server.BaseHTTPRequestHandler):
+    """HTTP request handler"""
+    pass
 
 
 parser = ArgumentParser(prog="redcapp")
 parser.add_argument(
     "command", choices=["run", "test"], help="Run or test services"
 )
-parser.add_argument(
-    "--env",
-    action="store_true",
-    help="Signals to gather host, path, token from environment"
-)
 args = parser.parse_args()
 
 
 if args.command == "run":
-    if args.env:
-        host = environ.get("REDCAP_API_HOST")
-        path = environ.get("REDCAP_API_PATH")
-        token = environ.get("REDCAP_API_TOKEN")
-        if not all((host, path, token)):
-            exit("Environment is missing host or path or token")
-    else:
-        environ["REDCAP_API_HOST"] = input("Enter API host: ")
-        environ["REDCAP_API_PATH"] = input("Enter API path: ")
-        environ["REDCAP_API_TOKEN"] = input("Enter project API token: ")
+
+    # initialize logging
+    basicConfig(
+        filename="service.log",
+        format="127.0.0.1 - - [%(asctime)s] %(message)s",
+        datefmt="%d/%b/%Y %H:%M:%S",
+        level=INFO
+    )
+    LOGGER = getLogger(__name__)
+
+    # spin up service
     try:
-        while True:
-            input("??? ")
+        service = server.ThreadingHTTPServer(
+            ("127.0.0.1", 8080), Service
+        )
+        LOGGER.info("listening on loopback, port 8080")
+        service.serve_forever()
     except (EOFError, KeyboardInterrupt):
-        exit("Session interrupted")
+        service.shutdown()
+        LOGGER.info("shut down successful")
+        exit()
+        
 
 elif args.command == "test":
     pass
