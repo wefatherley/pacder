@@ -12,22 +12,6 @@ from .util import record_type_map
 LOGGER = getLogger(__name__)
 
 
-HTML = """
-  <!DOCTYPE html>
-  <html lang="en">
-  <head>
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-  </head>
-  <body>
-    <table style="width:100%">{}</table>
-  </body>
-  </html>
-""".strip()
-
-
 class HTMLParser(HTMLParser):
     pass
 
@@ -206,8 +190,8 @@ class Metadata:
             td = '<td><input type="text" value="{}"></td>'
             with open(path, "w") as fp:
                 html = (
-                    '<tr>' +
-                    "".join('<td>{}</td>'.format(c) for c in COLUMNS)
+                    '<tr><td><input type="checkbox"></td>'
+                    + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
                     + '</tr>'
                 )
                 for metadatum in self.raw_metadata.values():
