@@ -13,6 +13,7 @@ LOGGER = getLogger(__name__)
 
 
 class HTMLParser(HTMLParser):
+    """Extract metadata from HTML file"""
     pass
 
 
@@ -187,18 +188,22 @@ class Metadata:
                 for metadatum in self.raw_metadata:
                     writer.writerow(metadatum)
         elif fmt == "html":
-            td = '<td><input type="text" value="{}"></td>'
+            td = '<td><input type="text" for="{}" value="{}"></td>'
             with open(path, "w") as fp:
                 html = (
-                    '<tr><td><input type="checkbox"></td>'
+                    '<tr><td></td>'
                     + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
                     + '</tr>'
                 )
                 for metadatum in self.raw_metadata.values():
                     row = ""
                     for c in COLUMNS:
-                        row += td.format(metadatum[c])
-                    html += '<tr>' + row + '</tr>'
+                        row += td.format(c, metadatum[c])
+                    html += (
+                        '<tr><td><input type="checkbox"></td>'
+                        + row
+                        + '</tr>'
+                    )
                 fp.write(HTML.format(html))
         else:
             raise Exception("unsupported dump format")

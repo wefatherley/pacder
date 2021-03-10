@@ -11,7 +11,15 @@ from . import Project
 
 class Service(server.BaseHTTPRequestHandler):
     """HTTP request handler"""
-    pass
+    
+    def do_GET(self):
+        """Handle GET requests"""
+        if self.path == "/":
+            pass
+        elif self.path == "/metadata":
+            pass
+        else:
+            self.send_error(HTTPStatus.NOT_FOUND)
 
 
 parser = ArgumentParser(prog="redcapp")

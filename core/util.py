@@ -148,53 +148,54 @@ record_type_map = {
 
 
 metadata_html = """
-<!DOCTYPE html>
-<html>
-<head>
-<title>Metadata editor</title>
-<style>
-  table {border-spacing: 0; width: 100%; border: 1px solid #ddd;}
-  th, td {text-align: left; padding: 16px;}
-  tr:nth-child(even) {background-color: #f2f2f2}
-</style>
-</head>
-<body>
-<h1>{}</h1>
-<p>
-  <button onclick="sortTable()">Sort by:</button><input>
-  <br>
-  <button onclick="addRow()">Add row</button>
-  <button onclick="deleteRow()">Delete checked row(s)</button>
-  <button onclick="submitMetadata()">Submit</button>
-</p>
-<table id="metadata">{}</table>
-<script>
-function addRow() { };
-function sortTable() {
-  var table, rows, switching, i, x, y, shouldSwitch;
-  table = document.getElementById("metadata");
-  switching = true;
-  while (switching) {
-    switching = false;
-    rows = table.rows;
-    for (i = 1; i < (rows.length - 1); i++) {
-      shouldSwitch = false;
-      x = rows[i].getElementsByTagName("TD")[0];
-      y = rows[i + 1].getElementsByTagName("TD")[0];
-      if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-        shouldSwitch = true;
-        break;
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <title>Metadata editor</title>
+  <style>
+    table {border-spacing: 0; width: 100%; border: 1px solid #ddd;}
+    th, td {text-align: left; padding: 16px;}
+    tr:nth-child(even) {background-color: #f2f2f2}
+  </style>
+  </head>
+  <body>
+  <h1>{}</h1>
+  <p>
+    <button onclick="sortTable()">Sort by:</button><input>
+    <br>
+    <button onclick="addRow()">Add row</button>
+    <button onclick="deleteRow()">Delete checked row(s)</button>
+    <button onclick="submitMetadata()">Submit</button>
+  </p>
+  <table id="metadata">{}</table>
+  <script>
+  function addRow() { };
+  function deleteRow() { };
+  function sortTable() {
+    var table, rows, switching, i, x, y, shouldSwitch;
+    table = document.getElementById("metadata");
+    switching = true;
+    while (switching) {
+      switching = false;
+      rows = table.rows;
+      for (i = 1; i < (rows.length - 1); i++) {
+        shouldSwitch = false;
+        x = rows[i].getElementsByTagName("TD")[0];
+        y = rows[i + 1].getElementsByTagName("TD")[0];
+        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+          shouldSwitch = true;
+          break;
+        }
+      }
+      if (shouldSwitch) {
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
       }
     }
-    if (shouldSwitch) {
-      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-      switching = true;
-    }
-  }
-};
-</script>
-</body>
-</html>
+  };
+  </script>
+  </body>
+  </html>
 """.strip()
 
 
