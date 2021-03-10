@@ -1,12 +1,12 @@
-"""Metadata object"""
+"""Metadata and associated objects"""
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
 from itertools import groupby, zip_longest
-from json import load as load_json
+from json import dump as dump_json, load as load_json
 from logging import getLogger
 from re import compile, finditer, sub
 
-from .util import record_type_map
+from .util import metadata_html, record_type_map, Metadatum
 
 
 LOGGER = getLogger(__name__)
@@ -41,6 +41,8 @@ DUMP_OPERATOR_RE = compile(r"==|!=")
 
 class Metadata:
     """Container for REDCap metadata"""
+
+    html = metadata_html
 
     def __getitem__(self, key):
         """Get metadatum"""
@@ -158,23 +160,27 @@ class Metadata:
     def load_record(self, record):
         """Return record with Python typing"""
         if len(self.raw_field_names) == 0:
-            raise Exception("No export field names!!")
+            raise Exception("No field name mapping!!")
         for k,v in record.items():
-            k = self.raw_field_names[k]["original_field_name"]
-            record[k] = record_type_map[
-                self[k]["text_validation_type_or_show_slider_number"]
+            ofn = self.raw_field_names[k]["original_field_name"]
+            v = record_type_map[
+                self[ofn]["text_validation_type_or_show_slider_number"]
             ][0](v)
+            logic = self.load_logic(
+                self.raw_metadata[ofn]["branching_logic"], as_func=True
+            )(v)
+            record[k] = Metadatum(k, v, logic)
         return record
 
     def dump_record(self, record):
         """Return Pythonic record as JSON-compliant dict"""
         if len(self.raw_field_names) == 0:
-            raise Exception("No export field names!!")
+            raise Exception("No field name mapping!!")
         for k,v in record.items():
             k = self.raw_field_names[k]["original_field_name"]
             record[k] = record_type_map[
                 self[k]["text_validation_type_or_show_slider_number"]
-            ][1](v)
+            ][1](v.value)
         return record
 
     def dump(self, path, fmt="csv"):
@@ -187,10 +193,13 @@ class Metadata:
                 writer.writeheader()
                 for metadatum in self.raw_metadata:
                     writer.writerow(metadatum)
+        elif fmt == "json":
+            with open(path, "w") as fp:
+                dump_json(self.raw_metadata, fp)
         elif fmt == "html":
             td = '<td><input type="text" for="{}" value="{}"></td>'
             with open(path, "w") as fp:
-                html = (
+                table = (
                     '<tr><td></td>'
                     + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
                     + '</tr>'
@@ -199,12 +208,12 @@ class Metadata:
                     row = ""
                     for c in COLUMNS:
                         row += td.format(c, metadatum[c])
-                    html += (
+                    table += (
                         '<tr><td><input type="checkbox"></td>'
                         + row
                         + '</tr>'
                     )
-                fp.write(HTML.format(html))
+                fp.write(self.html.format(table))
         else:
             raise Exception("unsupported dump format")
 

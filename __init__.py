@@ -1,2 +1,2 @@
-"""Exposes core and HTTP request handler"""
+"""WIP"""
 from .core import *

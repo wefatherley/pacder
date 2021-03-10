@@ -1,4 +1,5 @@
 """Helpers for core modules"""
+from collections import namedtuple
 from datetime import date, datetime, time
 from decimal import Context, Decimal, ROUND_HALF_UP
 
@@ -147,6 +148,9 @@ record_type_map = {
 }
 
 
+Metadatum = namedtuple("Datum", ["original_field_name", "value", "logic"])
+
+
 metadata_html = """
   <!DOCTYPE html>
   <html>
@@ -199,4 +203,4 @@ metadata_html = """
 """.strip()
 
 
-__all__ = ["record_type_map",]
+__all__ = ["metadata_html", "record_type_map", "Metadatum"]
