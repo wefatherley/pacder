@@ -13,29 +13,6 @@ from .util import record_type_map
 LOGGER = getLogger(__name__)
 
 
-class HTMLParser(HTMLParser):
-    """Extract metadata from HTML file"""
-
-    raw_metadata = list()
-
-    def feed(self, data):
-        """Feed in raw metadata HTML string"""
-        pass
-
-    def handle_startendtag(self, tag, attrs):
-        """Extract metadata elements"""
-        pass
-
-
-HTML_REGEX = compile(r"(/\*pacder\*/)")
-
-
-class SQL:
-    create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
-    create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
-    add_column = "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {};\n"
-
-
 COLUMNS = [
     "field_name", "form_name", "section_header", "field_type",
     "field_label", "select_choices_or_calculations", "field_note",
@@ -44,6 +21,38 @@ COLUMNS = [
     "required_field", "custom_alignment", "question_number",
     "matrix_group_name", "matrix_ranking", "field_annotation",
 ]
+
+
+class HTMLParser(HTMLParser):
+    """Extract metadata from HTML string"""
+
+    raw_metadata = dict()
+
+    def feed(self, data):
+        """Feed in raw metadata HTML string"""
+        if self.raw_metadata:
+            self.raw_metadata = dict()
+        super().feed(data)
+        self.raw_metadata = [v for v in self.raw_metadata.values()]
+        return self.raw_metadata
+
+    def handle_startendtag(self, tag, attrs):
+        """Extract metadata elements"""
+        if tag == "td":
+            column_name, index = attrs["for"].split("_")
+            try:
+                self.raw_metadata[index][column_name] = attrs["value"]
+            except KeyError:
+                self.raw_metadata[index] = {column_name: attrs["value"]}
+
+
+HTML_TABLE_RE = compile(r"(/\*pacder\*/)")
+
+
+class SQL:
+    create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
+    create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
+    add_column = "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {};\n"
 
 
 LOAD_VARIABLE_RE = compile(r"\[[\w()]+\]")
@@ -231,7 +240,7 @@ class Metadata:
                     + '</tr>'
                 )
             with open(path, "w") as fp:
-                fp.write(HTML_REGEX.sub(html))
+                fp.write(HTML_TABLE_RE.sub(html))
         else:
             raise Exception("unsupported dump format")
 

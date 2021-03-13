@@ -2,7 +2,8 @@
 from datetime import date, datetime, time
 from decimal import Context, Decimal, ROUND_HALF_UP
 
-import re
+
+IDENTITY = lambda string: string
 
 
 DCM = { # decimal context map
@@ -65,9 +66,9 @@ record_type_map = {
         lambda d: d.strftime("%Y-%m-%d %H:%M:%S"),
         "DATETIME",
     ),
-    "email": (lambda s: s, lambda s: s, "TEXT",),
+    "email": (IDENTITY, IDENTITY, "TEXT",),
     "integer": (int, str, "INT",),
-    "alpha_only": (lambda s: s, lambda s: s, "TEXT",),
+    "alpha_only": (IDENTITY, IDENTITY, "TEXT",),
     "number": (
         lambda n: Decimal(sub(r",", ".", n), context=DCM["number"]),
         lambda n: str(n),
@@ -128,11 +129,11 @@ record_type_map = {
         lambda n: sub(r"\.", ",", str(n)),
         "FLOAT",
     ),
-    "phone_australia": (lambda s: s, lambda s: s, "TEXT",),
-    "phone": (lambda s: s, lambda s: s, "TEXT",),
-    "postalcode_australia": (lambda s: s, lambda s: s, "TEXT",),
-    "postalcode_canada": (lambda s: s, lambda s: s, "TEXT",),
-    "ssn": (lambda s: s, lambda s: s, "TEXT",),
+    "phone_australia": (IDENTITY, IDENTITY, "TEXT",),
+    "phone": (IDENTITY, IDENTITY, "TEXT",),
+    "postalcode_australia": (IDENTITY, IDENTITY, "TEXT",),
+    "postalcode_canada": (IDENTITY, IDENTITY, "TEXT",),
+    "ssn": (IDENTITY, IDENTITY, "TEXT",),
     "time": (
         lambda t: time.strptime(t, "%H:%M"),
         lambda t: t.strftime("%H:%M"),
@@ -143,9 +144,9 @@ record_type_map = {
         lambda t: t.strftime("%M:%S"),
         "TIME",
     ),
-    "vmrn": (lambda s: s, lambda s: s, "TEXT",),
-    "Zipcode": (lambda s: s, lambda s: s, "TEXT",),
-    "": (lambda s: s, lambda s: s, "TEXT",),
+    "vmrn": (IDENTITY, IDENTITY, "TEXT",),
+    "Zipcode": (IDENTITY, IDENTITY, "TEXT",),
+    "": (IDENTITY, IDENTITY, "TEXT",),
 }
 
 

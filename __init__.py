@@ -10,10 +10,10 @@ from .core import *
 LOGGER = getLogger(__name__)
 
 
-MY_NAME = path.dirname(__file__)
-FRONTEND_HTML_PATH = MY_NAME + "/static/frontend.html"
-METADATA_HTML_PATH = MY_NAME + "/static/metadata.html"
-RECORDS_HTML_PATH = MY_NAME + "/static/records.html"
+PATH = path.dirname(__file__)
+FRONTEND_HTML = open(PATH + "/static/frontend.html", "rb")
+METADATA_HTML_PATH = open(PATH + "/static/metadata.html", "rb")
+RECORDS_HTML_PATH = open(PATH + "/static/records.html", "rb")
 
 
 class Service(BaseHTTPRequestHandler):
