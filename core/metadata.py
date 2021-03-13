@@ -15,8 +15,16 @@ LOGGER = getLogger(__name__)
 
 class HTMLParser(HTMLParser):
     """Extract metadata from HTML file"""
-    pass
 
+    raw_metadata = list()
+
+    def feed(self, data):
+        """Feed in raw metadata HTML string"""
+        pass
+
+    def handle_startendtag(self, tag, attrs):
+        """Extract metadata elements"""
+        pass
 
 
 HTML_REGEX = compile(r"(/\*pacder\*/)")
@@ -49,6 +57,8 @@ Datum = namedtuple("Datum", ["original_field_name", "value", "logic"])
 
 class Metadata:
     """Container for REDCap metadata"""
+    
+    html_parser = HTMLParser()
 
     def __getitem__(self, key):
         """Get metadatum"""
@@ -244,11 +254,7 @@ class Metadata:
                 metadatum = metadata.pop()
                 self[metadatum["field_name"]] = metadatum
         elif fmt == "html":
-            with path:
-                metadata = HTMLParser(path)
-            while any(metadata):
-                metadatum = metadata.pop()
-                self[metadatum["field_name"]] = metadatum
+            self.raw_metadata = self.html_parser.feed(path.read())
         else:
             raise Exception("unsupported load format")
         path.close()

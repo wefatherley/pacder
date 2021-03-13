@@ -122,6 +122,7 @@ class Connector(BaseConnector):
     def delete_content(self, **parameters):
         """Delete content"""
         if data in parameters:
+            LOGGER.warn("Cannot pass in data on Delete")
             del parameters[data]
         params = self.params
         for key, value in parameters.items():
@@ -141,6 +142,7 @@ class Connector(BaseConnector):
     def export_content(self, **parameters):
         """Export content"""
         if data in parameters:
+            LOGGER.warn("Cannot pass in data on Export")
             del parameters[data]
         params = self.params
         for key, value in parameters.items():
