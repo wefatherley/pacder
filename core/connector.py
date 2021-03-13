@@ -92,7 +92,7 @@ class BaseConnector(client.HTTPSConnection):
             return BytesIO(urlencode(data).encode("latin-1"))
         elif isinstance(data, str):
             return BytesIO(data.encode("latin-1"))
-        raise Exception("Unable to build body")]
+        raise Exception("Unable to build body")
 
     def set_effective_headers(self, action):
         """Set the request, or "effective" headers"""
@@ -122,6 +122,8 @@ class Connector(BaseConnector):
 
     def delete_content(self, **parameters):
         """Delete content"""
+        if data in parameters:
+            del parameters[data]
         params = self.params
         for key, value in parameters.items():
             if key not in PARAMETERS:
@@ -139,6 +141,8 @@ class Connector(BaseConnector):
         
     def export_content(self, **parameters):
         """Export content"""
+        if data in parameters:
+            del parameters[data]
         params = self.params
         for key, value in parameters.items():
             if key not in PARAMETERS:
@@ -173,55 +177,81 @@ class Connector(BaseConnector):
         
     def arms(self, action, data=None, **parameters):
         """Modify arms"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="arms", **parameters
+        )
 
     def events(self, action, data=None, **parameters):
         """Modify events"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="events", **parameters
+        )
 
     def field_names(self, action, data=None, **parameters):
         """Modify field_names"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="field_names", **parameters
+        )
 
     def files(self, action, data=None, **parameters):
         """Modify files"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="files", **parameters
+        )
 
     def instruments(self, action, data=None, **parameters):
         """Modify instruments"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="instruments", **parameters
+        )
 
     def metadata(self, action, data=None, **parameters):
         """Modify metadata"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="metadata", **parameters
+        )
 
     def projects(self, action, data=None, **parameters):
         """Modify projects"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="projects", **parameters
+        )
 
     def records(self, action, data=None, **parameters):
         """Modify records"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="records", **parameters
+        )
         
     def repeating_ie(self, action, data=None, **parameters):
         """Modify repeating_ie"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="repeating_ie", **parameters
+        )
 
     def reports(self, action, data=None, **parameters):
         """Modify reports"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="reports", **parameters
+        )
 
     def redcap(self, action, data=None, **parameters):
         """Modify redcap"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="redcap", **parameters
+        )
 
     def surveys(self, action, data=None, **parameters):
         """Modify surveys"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="surveys", **parameters
+        )
 
     def users(self, action, data=None, **parameters):
         """Modify users"""
-        pass
+        return getattr(self, "{}_content".format(action))(
+            data=data, content="users", **parameters
+        )
 
 
 __all__ = ["Connector",]

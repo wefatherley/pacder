@@ -1,4 +1,5 @@
 """Metadata and associated objects"""
+from collections import namedtuple
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
 from itertools import groupby, zip_longest
@@ -6,7 +7,7 @@ from json import dump as dump_json, load as load_json
 from logging import getLogger
 from re import compile, finditer, sub
 
-from .util import metadata_html, record_type_map, Metadatum
+from .util import record_type_map
 
 
 LOGGER = getLogger(__name__)
@@ -17,57 +18,8 @@ class HTMLParser(HTMLParser):
     pass
 
 
-HTML = """
-  <!DOCTYPE html>
-  <html>
-  <head>
-  <title>Metadata editor</title>
-  <style>
-    table {border-spacing: 0; width: 100%; border: 1px solid #ddd;}
-    th, td {text-align: left; padding: 16px;}
-    tr:nth-child(even) {background-color: #f2f2f2}
-  </style>
-  </head>
-  <body>
-  <h1>{}</h1>
-  <p>
-    <button onclick="sortTable()">Sort by:</button><input>
-    <br>
-    <button onclick="addRow()">Add row</button>
-    <button onclick="deleteRow()">Delete checked row(s)</button>
-    <button onclick="submitMetadata()">Submit</button>
-  </p>
-  <table id="metadata">{}</table>
-  <script>
-  function addRow() { };
-  function deleteRow() { };
-  function sortTable() {
-    var table, rows, switching, i, x, y, shouldSwitch;
-    table = document.getElementById("metadata");
-    switching = true;
-    while (switching) {
-      switching = false;
-      rows = table.rows;
-      for (i = 1; i < (rows.length - 1); i++) {
-        shouldSwitch = false;
-        x = rows[i].getElementsByTagName("TD")[0];
-        y = rows[i + 1].getElementsByTagName("TD")[0];
-        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-          shouldSwitch = true;
-          break;
-        }
-      }
-      if (shouldSwitch) {
-        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-        switching = true;
-      }
-    }
-  };
-  </script>
-  </body>
-  </html>
-""".strip()
 
+HTML_REGEX = compile(r"(/\*pacder\*/)")
 
 
 class SQL:
@@ -252,24 +204,24 @@ class Metadata:
                 dump_json(self.raw_metadata, fp)
         elif fmt == "html":
             td = '<td><input type="text" for="{}" value="{}"></td>'
-            with open(path, "w") as fp:
-                table = (
-                    '<tr><td></td>'
-                    + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
+            table = (
+                '<tr><td></td>'
+                + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
+                + '</tr>'
+            )
+            for i in range(len(self.raw_metadata)):
+                row = ""
+                for c in COLUMNS:
+                    metadatum = self.raw_metadata[i][c]
+                    c += "_{}".format(str(i))
+                    row += td.format(c, metadatum)
+                table += (
+                    '<tr><td><input type="checkbox"></td>'
+                    + row
                     + '</tr>'
                 )
-                for i in range(len(self.raw_metadata)):
-                    row = ""
-                    for c in COLUMNS:
-                        metadatum = self.raw_metadata[i][c]
-                        c += "_{}".format(str(i))
-                        row += td.format(c, metadatum)
-                    table += (
-                        '<tr><td><input type="checkbox"></td>'
-                        + row
-                        + '</tr>'
-                    )
-                fp.write(HTML.format(table))
+            with open(path, "w") as fp:
+                fp.write(HTML_REGEX.sub(html))
         else:
             raise Exception("unsupported dump format")
 
@@ -281,17 +233,19 @@ class Metadata:
             else: 
                 path = open(path, "r")
         if fmt == "csv":
-            with open(path, "r", newline="") as fp:
-                reader = DictReader(fp, fieldnames=COLUMNS)
+            with path:
+                reader = DictReader(path, fieldnames=COLUMNS)
                 for row in reader:
                     self[row["field_name"]] = row
         elif fmt == "json":
-            metadata = load_json(path)
+            with path:
+                metadata = load_json(path)
             while any(metadata):
                 metadatum = metadata.pop()
                 self[metadatum["field_name"]] = metadatum
         elif fmt == "html":
-            metadata = HTMLParser(path)
+            with path:
+                metadata = HTMLParser(path)
             while any(metadata):
                 metadatum = metadata.pop()
                 self[metadatum["field_name"]] = metadatum

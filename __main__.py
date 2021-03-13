@@ -6,20 +6,7 @@ from os import environ
 from shutil import copyfileobj
 from sys import exit
 
-from . import Project
-
-
-class Service(server.BaseHTTPRequestHandler):
-    """HTTP request handler"""
-    
-    def do_GET(self):
-        """Handle GET requests"""
-        if self.path == "/":
-            pass
-        elif self.path == "/metadata":
-            pass
-        else:
-            self.send_error(HTTPStatus.NOT_FOUND)
+from . import Project, Service
 
 
 parser = ArgumentParser(prog="redcapp")
