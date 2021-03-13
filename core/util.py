@@ -3,6 +3,8 @@ from collections import namedtuple
 from datetime import date, datetime, time
 from decimal import Context, Decimal, ROUND_HALF_UP
 
+import re
+
 
 DCM = { # decimal context map
     "number": Context(prec=None, rounding=ROUND_HALF_UP),
@@ -148,59 +150,4 @@ record_type_map = {
 }
 
 
-Metadatum = namedtuple("Datum", ["original_field_name", "value", "logic"])
-
-
-metadata_html = """
-  <!DOCTYPE html>
-  <html>
-  <head>
-  <title>Metadata editor</title>
-  <style>
-    table {border-spacing: 0; width: 100%; border: 1px solid #ddd;}
-    th, td {text-align: left; padding: 16px;}
-    tr:nth-child(even) {background-color: #f2f2f2}
-  </style>
-  </head>
-  <body>
-  <h1>{}</h1>
-  <p>
-    <button onclick="sortTable()">Sort by:</button><input>
-    <br>
-    <button onclick="addRow()">Add row</button>
-    <button onclick="deleteRow()">Delete checked row(s)</button>
-    <button onclick="submitMetadata()">Submit</button>
-  </p>
-  <table id="metadata">{}</table>
-  <script>
-  function addRow() { };
-  function deleteRow() { };
-  function sortTable() {
-    var table, rows, switching, i, x, y, shouldSwitch;
-    table = document.getElementById("metadata");
-    switching = true;
-    while (switching) {
-      switching = false;
-      rows = table.rows;
-      for (i = 1; i < (rows.length - 1); i++) {
-        shouldSwitch = false;
-        x = rows[i].getElementsByTagName("TD")[0];
-        y = rows[i + 1].getElementsByTagName("TD")[0];
-        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
-          shouldSwitch = true;
-          break;
-        }
-      }
-      if (shouldSwitch) {
-        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-        switching = true;
-      }
-    }
-  };
-  </script>
-  </body>
-  </html>
-""".strip()
-
-
-__all__ = ["metadata_html", "record_type_map", "Metadatum"]
+__all__ = ["record_type_map",]

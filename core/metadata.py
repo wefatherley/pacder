@@ -17,6 +17,59 @@ class HTMLParser(HTMLParser):
     pass
 
 
+HTML = """
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <title>Metadata editor</title>
+  <style>
+    table {border-spacing: 0; width: 100%; border: 1px solid #ddd;}
+    th, td {text-align: left; padding: 16px;}
+    tr:nth-child(even) {background-color: #f2f2f2}
+  </style>
+  </head>
+  <body>
+  <h1>{}</h1>
+  <p>
+    <button onclick="sortTable()">Sort by:</button><input>
+    <br>
+    <button onclick="addRow()">Add row</button>
+    <button onclick="deleteRow()">Delete checked row(s)</button>
+    <button onclick="submitMetadata()">Submit</button>
+  </p>
+  <table id="metadata">{}</table>
+  <script>
+  function addRow() { };
+  function deleteRow() { };
+  function sortTable() {
+    var table, rows, switching, i, x, y, shouldSwitch;
+    table = document.getElementById("metadata");
+    switching = true;
+    while (switching) {
+      switching = false;
+      rows = table.rows;
+      for (i = 1; i < (rows.length - 1); i++) {
+        shouldSwitch = false;
+        x = rows[i].getElementsByTagName("TD")[0];
+        y = rows[i + 1].getElementsByTagName("TD")[0];
+        if (x.innerHTML.toLowerCase() > y.innerHTML.toLowerCase()) {
+          shouldSwitch = true;
+          break;
+        }
+      }
+      if (shouldSwitch) {
+        rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+        switching = true;
+      }
+    }
+  };
+  </script>
+  </body>
+  </html>
+""".strip()
+
+
+
 class SQL:
     create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
     create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
@@ -39,10 +92,11 @@ DUMP_VARIABLE_RE = compile(r"record\['\w+'\]")
 DUMP_OPERATOR_RE = compile(r"==|!=")
 
 
+Datum = namedtuple("Datum", ["original_field_name", "value", "logic"])
+
+
 class Metadata:
     """Container for REDCap metadata"""
-
-    html = metadata_html
 
     def __getitem__(self, key):
         """Get metadatum"""
@@ -169,7 +223,7 @@ class Metadata:
             logic = self.load_logic(
                 self.raw_metadata[ofn]["branching_logic"], as_func=True
             )(v)
-            record[k] = Metadatum(k, v, logic)
+            record[k] = Datum(k, v, logic)
         return record
 
     def dump_record(self, record):
@@ -204,16 +258,18 @@ class Metadata:
                     + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
                     + '</tr>'
                 )
-                for metadatum in self.raw_metadata.values():
+                for i in range(len(self.raw_metadata)):
                     row = ""
                     for c in COLUMNS:
-                        row += td.format(c, metadatum[c])
+                        metadatum = self.raw_metadata[i][c]
+                        c += "_{}".format(str(i))
+                        row += td.format(c, metadatum)
                     table += (
                         '<tr><td><input type="checkbox"></td>'
                         + row
                         + '</tr>'
                     )
-                fp.write(self.html.format(table))
+                fp.write(HTML.format(table))
         else:
             raise Exception("unsupported dump format")
 
