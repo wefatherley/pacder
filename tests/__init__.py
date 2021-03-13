@@ -1,5 +1,5 @@
 """redcapp tests"""
-from http import server
+from http import client, server, HTTPStatus
 from threading import Thread
 from unittest import mock, TestCase
 

@@ -1,8 +1,7 @@
 """Connector objects"""
 from http import client, HTTPStatus
-from io import BytesIO, IOBase
+from io import BytesIO
 from logging import getLogger
-from shutil import copyfileobj
 from urllib.parse import urlencode
 
 

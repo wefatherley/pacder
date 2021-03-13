@@ -1,5 +1,5 @@
 """WIP"""
-from http import server
+from http.server import BaseHTTPRequestHandler
 from logging import getLogger
 from os import path
 from shutil import copyfileobj
@@ -16,7 +16,7 @@ METADATA_HTML_PATH = MY_NAME + "/static/metadata.html"
 RECORDS_HTML_PATH = MY_NAME + "/static/records.html"
 
 
-class Service(server.BaseHTTPRequestHandler):
+class Service(BaseHTTPRequestHandler):
     """HTTP request handler"""
     
     def do_GET(self):

@@ -1,9 +1,7 @@
+"""Main"""
 from argparse import ArgumentParser
 from http import server, HTTPStatus
-from io import StringIO
 from logging import basicConfig, getLogger, INFO
-from os import environ
-from shutil import copyfileobj
 from sys import exit
 
 from . import Project, Service
