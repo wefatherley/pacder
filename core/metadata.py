@@ -63,6 +63,7 @@ DUMP_OPERATOR_RE = compile(r"==|!=")
 class Metadata:
     """Container for REDCap metadata"""
     
+    columns = COLUMNS
     html_parser = HTMLParser()
 
     def __getitem__(self, key):

@@ -33,5 +33,3 @@ class Service(BaseHTTPRequestHandler):
         else:
             self.send_error(HTTPStatus.NOT_FOUND)
 
-
-class Project: pass

@@ -1,5 +1,5 @@
 # WIP pacder
-This package furnishes programmatic access to a REDCap instance's API, allowing token holders to __delete__, __export__, and __import__ content related to one or more of their projects.
+This package furnishes programmatic and browser-based access to the REDCap API, allowing token holders to __delete__, __export__, and __import__ content related to one or more of their projects. Applications include ETL solutions, project analysis, interview client development, and more.
 
 ## Install
 Available for __Python 3.6+__. There are no dependencies other than the Python standard library. 
@@ -13,6 +13,8 @@ or with `conda`:
 `conda install -c pacder`.
 
 ## Usage
+
+### Programmatic usage
 At the lowest level, `pacder` exposes a REDCap project with it's `Connector` object:
 
 ```python
@@ -48,7 +50,7 @@ with Connector(host, path, token) as conn:
         conn.metadata("import", fp)
 ```
 
-In addition to acting as a low-level client, `pacder` also provides a `Project` object that performs type casting, and other useful features:
+In addition to a low-level client, `pacder` also provides a `Project` object that interacts with REDCap abrstactions like an ORM:
 
 ```python
 from datetime import date
@@ -59,7 +61,7 @@ from pacder import Project
 with Project(host, path, token) as proj:
 
     # handle and inspect records
-    for record in proj.records(filterLogic="[age] > 65"):
+    for record in proj.records(filterLogic="[age] < 65"):
 
         # get the original field name of a checkbox variable
         comorbids_ofn = record["comorbid___123"].original_field_name
@@ -68,16 +70,19 @@ with Project(host, path, token) as proj:
         if record["sign_up_date"].value < date(2021, 5, 1):
             print("{} signed up too early!!".format(record["name"].value))
 
-        # verify interview went as supposed
-        if record["available_vax_sites"].logic:
+        # make decisions based on a record's branching logic
+        if record["available_vaccine_sites"].logic:
             print("{} saw vax sites!!".format(record["name"].value))
 
-    # alter project metadata
-    proj.update_metadata({"field_name": "vaccine_type", ...})
+    # add a field to the project metadata
+    proj.update_metadata({"field_name": "vaccine_manufacturer", ...})
 
     # create a SQL migration from project metadata for auxiliary relational datastore
     proj.sql_migration("/migrations/myproject.sql")
-    # by default the migration has tables that represent field type,
-    # but one can go by, e.g., form name
-    pj.sql_migration("/migrations/myproject.sql", table_groups="form_name")
+    # by default the migration has tables that go by field type,
+    # but they can be made to go by, e.g., form name
+    proj.sql_migration("/migrations/myproject.sql", table_groups="form_name")
 ```
+
+### Graphical usage
+In addition to usage in a computer program, `pacder` also exposes through the command line a simple loopback server that serves a graphical tool for exploring records, editing metadata, and so on. Simply open the terminal and execute `python3 -m pacder run`, open a browser and visit the loopback address at port `8080`, i.e., `http://127.0.0.1:8080/`.
