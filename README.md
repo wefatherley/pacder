@@ -13,7 +13,7 @@ or with `conda`:
 `conda install -c pacder`.
 
 ## Usage
-At the lowest level, `pacder` exposes a REDCap project with a `Connector` object:
+At the lowest level, `pacder` exposes a REDCap project with it's `Connector` object:
 
 ```python
 # First, find your API location/credentials, e.g.,
@@ -37,9 +37,9 @@ with Connector(host, path, token) as conn:
     conn.files("delete", name="flowers.png")
 
     # fetch some records (a list of dicts)
-    my_records = conn.export_content("records", format="csv", filterLogic="[age] > 30")
+    my_records = conn.export_content("records", format="csv", filterLogic="[age] > 30", ...)
     # or, identically,
-    my_records = conn.records("export", format="csv", filterLogic="[age] > 30")
+    my_records = conn.records("export", format="csv", filterLogic="[age] > 30", ...)
 
     # update a project's metadata
     with open("project_metadata.csv", "r") as fp:
@@ -56,10 +56,10 @@ from datetime import date
 from pacder import Project
 
 # use project object as a context manager (or not)
-with Project(host, path, token) as pj:
+with Project(host, path, token) as proj:
 
     # handle and inspect records
-    for record in pj.records(filterLogic="[age] > 65"):
+    for record in proj.records(filterLogic="[age] > 65"):
 
         # get the original field name of a checkbox variable
         comorbids_ofn = record["comorbid___123"].original_field_name
@@ -73,10 +73,10 @@ with Project(host, path, token) as pj:
             print("{} saw vax sites!!".format(record["name"].value))
 
     # alter project metadata
-    pj.update_metadata({"field_name": "vaccine_type", ...})
+    proj.update_metadata({"field_name": "vaccine_type", ...})
 
     # create a SQL migration from project metadata for auxiliary relational datastore
-    pj.sql_migration("/migrations/myproject.sql")
+    proj.sql_migration("/migrations/myproject.sql")
     # by default the migration has tables that represent field type,
     # but one can go by, e.g., form name
     pj.sql_migration("/migrations/myproject.sql", table_groups="form_name")

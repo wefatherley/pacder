@@ -1,5 +1,4 @@
 """Metadata and associated objects"""
-from collections import namedtuple
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
 from itertools import groupby, zip_longest
@@ -59,9 +58,6 @@ LOAD_VARIABLE_RE = compile(r"\[[\w()]+\]")
 LOAD_OPERATOR_RE = compile(r"(?<![<\|>]{1})=|<>")
 DUMP_VARIABLE_RE = compile(r"record\['\w+'\]")
 DUMP_OPERATOR_RE = compile(r"==|!=")
-
-
-Datum = namedtuple("Datum", ["original_field_name", "value", "logic"])
 
 
 class Metadata:

@@ -1,4 +1,5 @@
 """Helpers for core modules"""
+from collections import namedtuple
 from datetime import date, datetime, time
 from decimal import Context, Decimal, ROUND_HALF_UP
 
@@ -150,4 +151,7 @@ record_type_map = {
 }
 
 
-__all__ = ["record_type_map",]
+Datum = namedtuple("Datum", ["original_field_name", "value", "logic"])
+
+
+__all__ = ["record_type_map", "Datum"]

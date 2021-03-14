@@ -32,7 +32,9 @@ class BaseConnector(client.HTTPSConnection):
     def post(self, data):
         """Handle HTTP POST procedure"""
         try:
-            self.putrequest(method=self.method, url=self.path_stack[-1])
+            self.putrequest(
+                method=self.method, url=self.path_stack[-1]
+            )
             for k,v in self.effective_headers.items():
                 self.putheader(k,v)
             self.endheaders(message_body=data)
@@ -42,7 +44,9 @@ class BaseConnector(client.HTTPSConnection):
             return None
         else:
             response = self.getresponse()
-            response.headers = {k.lower(): v for k,v in response.headers}
+            response.headers = {
+                k.lower(): v for k,v in response.headers
+            }
             if response.status == HTTPStatus.OK:
                 LOGGER.info(
                     "response received sucessfully: octets=%s",
