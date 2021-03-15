@@ -15,7 +15,7 @@ class Project:
 
     def __exit__(self, typ, val, trb):
         """Exit context"""
-        pass
+        self.connector.close()
 
     def __init__(self, host, path, token):
         """Constructor"""
@@ -45,5 +45,6 @@ class Project:
         dump(self.metadata.raw_metadata + [metadatum], fp)
         with self.connector as conn:
             conn.import_content("metadata", fp)
+
 
 __all__ = ["Connector", "Metadata", "Project"]

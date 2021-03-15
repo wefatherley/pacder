@@ -3,6 +3,7 @@ from http.server import BaseHTTPRequestHandler
 from logging import getLogger
 from os import path
 from shutil import copyfileobj
+from urllib.parse import urlparse
 
 from .core import *
 
@@ -32,4 +33,3 @@ class Service(BaseHTTPRequestHandler):
             pass
         else:
             self.send_error(HTTPStatus.NOT_FOUND)
-

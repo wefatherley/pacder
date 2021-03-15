@@ -6,29 +6,26 @@ from unittest import mock, TestCase
 from .. import Service
 
 
-class TestClient(TestCase):
-    """Test core.connector"""
-    pass
+class TestService(Service):
+    """Service subclass for tests"""
+
+    def do_POST(self):
+        """Handle POST requests"""
+        url = urlparse(self.path)
+        if url.path == "/tests":
+            pass
+        else:
+            self.send_error(HTTPStatus.NOT_FOUND)
 
 
-class TestMetadata(TestCase):
-    """Test core.metadata"""
-    pass
-
-
-class TestProject(TestCase):
-    """Test core.Project"""
-    pass
-
-
-class TestService(TestCase):
-    """Test HTTP services"""
+class BaseWebTest(TestCase):
+    """Base class for web-related tests"""
 
     @classmethod
     def setUpClass(cls):
         """Set up HTTP server"""
         cls.service = server.ThreadingHTTPServer(
-            ("127.0.0.1", 8080), Service
+            ("127.0.0.1", 8080), TestService
         )
         t = threading.Thread(target=cls.service.serve_forever)
         t.start()
@@ -37,6 +34,30 @@ class TestService(TestCase):
     def tearDownClass(cls):
         """Tear down HTTP server"""
         cls.service.shutdown()
+
+
+class TestClient(BaseWebTest):
+    """Test core.connector.Connector"""
+    
+    def test_BaseConnector(self):
+        pass
+
+    def test_Connector(self):
+        pass
+
+
+class TestMetadata(TestCase):
+    """Test core.metadata"""
+    pass
+
+
+class TestProject(BaseWebTest):
+    """Test core.Project"""
+    pass
+
+
+class TestService(BaseWebTest):
+    """Test HTTP services"""
 
     def test_DELETE(self):
         """Test URLs that support DELETE"""
@@ -53,4 +74,3 @@ class TestService(TestCase):
     def test_PUT(self):
         """Test URLs that support PUT"""
         pass
-
