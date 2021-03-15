@@ -1,10 +1,6 @@
 """Helpers for core modules"""
-from collections import namedtuple
 from datetime import date, datetime, time
 from decimal import Context, Decimal, ROUND_HALF_UP
-
-
-IDENTITY = lambda string: string
 
 
 DCM = { # decimal context map
@@ -21,7 +17,7 @@ DCM = { # decimal context map
 }
 
 
-record_type_map = {
+data_type_map = {
     "date_dmy": (
         lambda d: date.strptime(d, "%d-%m-%Y"),
         lambda d: d.strftime("%d-%m-%Y"),
@@ -67,9 +63,9 @@ record_type_map = {
         lambda d: d.strftime("%Y-%m-%d %H:%M:%S"),
         "DATETIME",
     ),
-    "email": (IDENTITY, IDENTITY, "TEXT",),
+    "email": (lambda s: s, lambda s: s, "TEXT",),
     "integer": (int, str, "INT",),
-    "alpha_only": (IDENTITY, IDENTITY, "TEXT",),
+    "alpha_only": (lambda s: s, lambda s: s, "TEXT",),
     "number": (
         lambda n: Decimal(sub(r",", ".", n), context=DCM["number"]),
         lambda n: str(n),
@@ -130,11 +126,11 @@ record_type_map = {
         lambda n: sub(r"\.", ",", str(n)),
         "FLOAT",
     ),
-    "phone_australia": (IDENTITY, IDENTITY, "TEXT",),
-    "phone": (IDENTITY, IDENTITY, "TEXT",),
-    "postalcode_australia": (IDENTITY, IDENTITY, "TEXT",),
-    "postalcode_canada": (IDENTITY, IDENTITY, "TEXT",),
-    "ssn": (IDENTITY, IDENTITY, "TEXT",),
+    "phone_australia": (lambda s: s, lambda s: s, "TEXT",),
+    "phone": (lambda s: s, lambda s: s, "TEXT",),
+    "postalcode_australia": (lambda s: s, lambda s: s, "TEXT",),
+    "postalcode_canada": (lambda s: s, lambda s: s, "TEXT",),
+    "ssn": (lambda s: s, lambda s: s, "TEXT",),
     "time": (
         lambda t: time.strptime(t, "%H:%M"),
         lambda t: t.strftime("%H:%M"),
@@ -145,13 +141,10 @@ record_type_map = {
         lambda t: t.strftime("%M:%S"),
         "TIME",
     ),
-    "vmrn": (IDENTITY, IDENTITY, "TEXT",),
-    "Zipcode": (IDENTITY, IDENTITY, "TEXT",),
-    "": (IDENTITY, IDENTITY, "TEXT",),
+    "vmrn": (lambda s: s, lambda s: s, "TEXT",),
+    "Zipcode": (lambda s: s, lambda s: s, "TEXT",),
+    "": (lambda s: s, lambda s: s, "TEXT",),
 }
 
 
-Datum = namedtuple("Datum", ["original_field_name", "value", "logic"])
-
-
-__all__ = ["record_type_map", "Datum"]
+__all__ = ["data_type_map",]

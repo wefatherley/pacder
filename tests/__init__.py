@@ -37,7 +37,7 @@ class BaseWebTest(TestCase):
 
 
 class TestClient(BaseWebTest):
-    """Test core.connector.Connector"""
+    """Test core.Connector"""
     
     def test_BaseConnector(self):
         pass
@@ -47,7 +47,7 @@ class TestClient(BaseWebTest):
 
 
 class TestMetadata(TestCase):
-    """Test core.metadata"""
+    """Test core.Metadata"""
     pass
 
 
@@ -56,8 +56,13 @@ class TestProject(BaseWebTest):
     pass
 
 
+class TestRecord(TestCase):
+    """Test core.Project"""
+    pass
+
+
 class TestService(BaseWebTest):
-    """Test HTTP services"""
+    """Test HTTP core.Service"""
 
     def test_DELETE(self):
         """Test URLs that support DELETE"""

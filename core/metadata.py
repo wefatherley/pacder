@@ -6,7 +6,7 @@ from json import dump as dump_json, load as load_json
 from logging import getLogger
 from re import compile, finditer, sub
 
-from .util import record_type_map
+from .util import data_type_map
 
 
 LOGGER = getLogger(__name__)
@@ -76,6 +76,10 @@ class Metadata:
         metadatum["branching_logic"] = self.load_logic(
             metadatum["branching_logic"], as_func=True
         )
+        if metadatum["required_field"] == "y":
+            metadatum["required_field"] = True
+        else:
+            metadatum["required_field"] = False
         return metadatum
 
     def __init__(self, raw_metadata={}, raw_field_names={}):
@@ -179,45 +183,21 @@ class Metadata:
             logic += oper_frag + vari_frag
         return logic
 
-    def load_record(self, record):
-        """Return record with Python typing"""
-        if len(self.raw_field_names) == 0:
-            raise Exception("No field name mapping!!")
-        for k,v in record.items():
-            ofn = self.raw_field_names[k]["original_field_name"]
-            v = record_type_map[
-                self[ofn]["text_validation_type_or_show_slider_number"]
-            ][0](v)
-            logic = self.load_logic(
-                self.raw_metadata[ofn]["branching_logic"], as_func=True
-            )(v)
-            record[k] = Datum(k, v, logic)
-        return record
-
-    def dump_record(self, record):
-        """Return Pythonic record as JSON-compliant dict"""
-        if len(self.raw_field_names) == 0:
-            raise Exception("No field name mapping!!")
-        for k,v in record.items():
-            k = self.raw_field_names[k]["original_field_name"]
-            record[k] = record_type_map[
-                self[k]["text_validation_type_or_show_slider_number"]
-            ][1](v.value)
-        return record
-
-    def dump(self, path, fmt="csv"):
+    def dump(self, fp, fmt="csv"):
         """Dump formatted metadata to path"""
         if len(self) == 0:
             raise Exception("Cannot dump empty metadata")
+        if isinstance(fp, str):
+            if fmt == "csv": fp = open(path, "r", newline="")
+            else: fp = open(path, "r")
         if fmt == "csv":
-            with open(path, "w", newline="") as fp:
+            with fp:
                 writer = DictWriter(fp, fieldnames=COLUMNS)
                 writer.writeheader()
                 for metadatum in self.raw_metadata:
                     writer.writerow(metadatum)
         elif fmt == "json":
-            with open(path, "w") as fp:
-                dump_json(self.raw_metadata, fp)
+            with fp: dump_json(self.raw_metadata, fp)
         elif fmt == "html":
             td = '<td><input type="text" for="{}" value="{}"></td>'
             table = (
@@ -236,34 +216,33 @@ class Metadata:
                     + row
                     + '</tr>'
                 )
-            with open(path, "w") as fp:
-                fp.write(HTML_TABLE_RE.sub(html))
+            with fp: fp.write(HTML_TABLE_RE.sub(html))
         else:
             raise Exception("unsupported dump format")
 
-    def load(self, path, fmt="csv"):
+    def load(self, fp, fmt="csv"):
         """Load formatted metadata from path"""
-        if isinstance(path, str):
+        if isinstance(fp, str):
             if fmt == "csv":
-                path = open(path, "r", newline="")
+                fp = open(fp, "r", newline="")
             else: 
-                path = open(path, "r")
+                fp = open(fp, "r")
         if fmt == "csv":
-            with path:
-                reader = DictReader(path, fieldnames=COLUMNS)
+            with fp:
+                reader = DictReader(fp, fieldnames=COLUMNS)
                 for row in reader:
                     self[row["field_name"]] = row
         elif fmt == "json":
-            with path:
-                metadata = load_json(path)
+            with fp:
+                metadata = load_json(fp)
             while any(metadata):
                 metadatum = metadata.pop()
                 self[metadatum["field_name"]] = metadatum
         elif fmt == "html":
-            self.raw_metadata = self.html_parser.feed(path.read())
+            with fp:
+                self.raw_metadata = self.html_parser.feed(fp.read())
         else:
             raise Exception("unsupported load format")
-        path.close()
 
     def sql_migration(self, path, schema="", table_groups="field_type"):
         """Write a SQL migration file from metadata"""
@@ -282,8 +261,9 @@ class Metadata:
                         SQL.add_column.format(
                             schema + table,
                             c["field_name"],
-                            record_type_map[c[COLUMNS[7]]][2]
+                            data_type_map[c[COLUMNS[7]]][2]
                         )
                     )
+
 
 __all__ = ["Metadata",]
