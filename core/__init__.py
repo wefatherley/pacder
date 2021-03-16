@@ -1,6 +1,5 @@
 """WIP"""
-from io import StringIO
-from json import dump
+from json import dumps
 
 from .connector import Connector
 from .metadata import Metadata
@@ -25,12 +24,12 @@ class Project:
             self.metadata = Metadata(
                 conn.metadata("export"), conn.field_names("export"))
 
-    def records(self, **query):
-        """Generates records"""
-        with self.connector as conn:
-            records = export_content("records", **query)
-        while any(records):
-            yield self.metadata.load_record(records.pop())
+    # def records(self, **query):
+    #     """Generates records"""
+    #     with self.connector as conn:
+    #         records = export_content("records", **query)
+    #     while any(records):
+    #         yield self.metadata.load_record(records.pop())
 
     def sql_migration(self, *args, **kwargs):
         """Return SQL migration for project metadata"""
@@ -42,10 +41,11 @@ class Project:
             raise Exception("Metadatum must be a dictionary")
         if list(metadatum.keys) != self.metadata.columns:
             raise Exception("Metadatum must have metadata columns")
-        fp = StringIO()
-        dump(self.metadata.raw_metadata + [metadatum], fp)
         with self.connector as conn:
-            conn.import_content("metadata", fp)
+            conn.import_content(
+                "metadata",
+                dumps(self.metadata.raw_metadata + [metadatum])
+            )
 
 
 __all__ = ["Connector", "Metadata", "Project"]

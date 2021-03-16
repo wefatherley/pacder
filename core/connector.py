@@ -89,13 +89,13 @@ class BaseConnector(client.HTTPSConnection):
                 )
                 return response.status, ""
 
-    def prepare_data(self, data):
-        """Return request-ready data"""
-        if isinstance(data, (dict, list, tuple)):
-            return BytesIO(urlencode(data).encode("latin-1"))
-        elif isinstance(data, str):
-            return BytesIO(data.encode("latin-1"))
-        raise Exception("Unable to build body")
+    # def prepare_data(self, data):
+    #     """Return request-ready data"""
+    #     if isinstance(data, (dict, list, tuple)):
+    #         return BytesIO(urlencode(data).encode("latin-1"))
+    #     elif isinstance(data, str):
+    #         return BytesIO(data.encode("latin-1"))
+    #     raise Exception("Unable to build body")
 
     def set_effective_headers(self, action):
         """Set the request, or "effective" headers"""
@@ -135,13 +135,13 @@ class Connector(BaseConnector):
             params += "&{}={}".format(key, value)
         params = params.encode("latin-1")
         self.set_effective_headers("delete")
-        status, data = self.post(params)
+        resp_status, resp_data = self.post(params)
         LOGGER.info(
             "delete resource: status=%i, content=%s",
-            status,
+            resp_status,
             parameters["content"]
         )
-        return data
+        return resp_data
         
     def export_content(self, **parameters):
         """Export content"""
@@ -155,13 +155,13 @@ class Connector(BaseConnector):
             params += "&{}={}".format(key, value)
         params = params.encode("latin-1")
         self.set_effective_headers("export")
-        status, data = self.post(params)
+        resp_status, resp_data = self.post(params)
         LOGGER.info(
             "export resource: status=%i, content=%s",
-            status,
+            resp_status,
             parameters["content"]
         )
-        return data
+        return resp_data
 
     def import_content(self, data, **parameters):
         """Import content"""
@@ -172,13 +172,13 @@ class Connector(BaseConnector):
             params += "&{}={}".format(key, value)
         self.path_stack.append(self.path_stack[0] + "?" + params)
         self.set_effective_headers("import")
-        status, data = self.post(self.prepare_data(data))
+        resp_status, resp_data = self.post(self.prepare_data(data))
         LOGGER.info(
             "import resource: status=%i, content=%s",
             status,
             parameters["content"]
         )
-        return data
+        return resp_data
         
     def arms(self, action, data=None, **parameters):
         """Modify arms"""

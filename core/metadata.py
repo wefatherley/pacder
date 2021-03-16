@@ -45,9 +45,6 @@ class HTMLParser(HTMLParser):
                 self.raw_metadata[index] = {column_name: attrs["value"]}
 
 
-HTML_TABLE_RE = compile(r"(/\*pacder\*/)")
-
-
 class SQL:
     create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
     create_table = "CREATE TABLE IF NOT EXISTS {}();\n"

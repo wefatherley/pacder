@@ -1,7 +1,7 @@
 # WIP pacder
 Exposes the REDCap API through the Python programming langauge, allowing token holders to __delete__, __export__, and __import__ content related to one or more of their projects. Applications include ETL flows, project analysis, interview client development, and more.
 ## Install
-Available for __Python 3.6+__. There are no dependencies other than the Python standard library. 
+Available for __Python 3.6+__.
 
 Install the latest stable release with `pip`:
 
@@ -47,7 +47,7 @@ with Connector(host, path, token) as conn:
         conn.metadata("import", fp)
 ```
 
-In addition to a low-level client, `pacder` also provides a `Project` object that interacts with REDCap abrstactions like an ORM:
+In addition to a basic client, `pacder` also provides a `Project` object that makes dealing with REDCap abstractions in Python simple:
 
 ```python
 from datetime import date
@@ -80,6 +80,6 @@ with Project(host, path, token) as proj:
     # but they can be made to go by, e.g., form name
     proj.sql_migration("/migrations/myproject.sql", table_groups="form_name")
 ```
-
+Please review the reference documentation for more usage information.
 ### Graphical usage
 In addition to usage in a computer program, `pacder` also exposes through the command line a simple loopback server that serves a graphical tool for exploring records, editing metadata, and so on. Simply open the terminal and execute `python3 -m pacder run`, open a browser and visit the loopback address at port `8080`, i.e., `http://127.0.0.1:8080/`.

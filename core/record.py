@@ -44,6 +44,10 @@ class YesNo:
 
 class Record:
     """Record object"""
+
+    def __getitem__(self, key, value):
+        """Get record datum"""
+        pass
     
     def __init__(self, raw_record, metadata):
         """Record constructor"""
