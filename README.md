@@ -72,7 +72,11 @@ with Project(host, path, token) as proj:
             print("{} saw vax sites!!".format(record["name"].value))
 
     # add a field to the project metadata
-    proj.update_metadata({"field_name": "vaccine_manufacturer", ...})
+    proj.metadata["vaccine_manufacturer"] = {"field_type": "radio", ...}
+    # hide an existing field
+    proj.metadata["vaccine"]["field_annotation"] = "@HIDDEN"
+    # update the redcap instance
+    proj.sync()
 
     # create a SQL migration from project metadata for auxiliary relational datastore
     proj.sql_migration("/migrations/myproject.sql")

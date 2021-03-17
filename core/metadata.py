@@ -63,6 +63,21 @@ class Metadata:
     columns = COLUMNS
     html_parser = HTMLParser()
 
+    def __delitem__(self, key):
+        """Delete metadatum"""
+        if "___" in key:
+            raise Exception("can't delete a single checkbox field")
+        if self.raw_metadata[key]["field_type"] == "checkbox":
+            for c in value[
+                "select_choices_or_calculations"
+            ].split("|"):
+                del self.raw_field_names[
+                    key + "___" + c.split(",")[0].strip()
+                ]
+        else:
+            del self.raw_field_names[key]
+        del self.raw_metadata[key]
+        
     def __getitem__(self, key):
         """Get metadatum"""
         if len(self.raw_field_names) == 0:
@@ -95,25 +110,36 @@ class Metadata:
         return len(self.raw_metadata)
 
     def __setitem__(self, key, value):
-        """Set metadatum"""
+        """Set metadata field"""
+        if "field_name" not in value:
+            value["field_name"] = key
+        if list(value.keys()) != self.columns:
+            raise Exception("New field missing columns")
+        self.raw_metadata.append(value)
         if value["field_type"] == "checkbox":
-            self.raw_metadata[key] = value
-            for exported_key in [
-                field_name.split(",")[-1].strip()
-                for field_name in value[
-                    "select_choices_or_calculations"
-                ].split("|")
-            ]:
-                self.raw_field_names[exported_key] = {
-                    "original_field_name": key,
-                    "export_field_name": exported_key
-                }
+            ofn = value["field_name"]
+            for c in value[
+                "select_choices_or_calculations"
+            ].split("|"):
+                efn = ofn + "___" + c.split(",")[0].strip()
+                self.raw_field_names.append(
+                    {
+                        "original_field_name": ofn,
+                        "export_field_name": efn,
+                    }
+                )
         else:
-            self.raw_metadata[key] = value
-            self.raw_field_names[key] = {
-                "original_field_name": key,
-                "export_field_name": key
-            }
+            self.raw_field_names.append(
+                {
+                    "original_field_name": ofn,
+                    "export_field_name": ofn,
+                }
+            )
+        LOGGER.info(
+            "added to metadata: field_name=%s, field_type=%s",
+            value["field_name"],
+            value["field_type"]
+        )
 
     @classmethod
     def load_logic(cls, logic, as_func=False):

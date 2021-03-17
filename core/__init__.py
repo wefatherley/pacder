@@ -35,17 +35,13 @@ class Project:
         """Return SQL migration for project metadata"""
         return self.metadata.sql_migration(*args, **kwargs)
 
-    def update_metadata(self, metadatum):
+    def sync(self):
+        """Update REDCap instance with project alterations"""
+        pass
+
+    def update_metadata(self, *args, **kwargs):
         """Updates project metadata"""
-        if not isinstance(metadatum, dict):
-            raise Exception("Metadatum must be a dictionary")
-        if list(metadatum.keys) != self.metadata.columns:
-            raise Exception("Metadatum must have metadata columns")
-        with self.connector as conn:
-            conn.import_content(
-                "metadata",
-                dumps(self.metadata.raw_metadata + [metadatum])
-            )
+        pass
 
 
 __all__ = ["Connector", "Metadata", "Project"]

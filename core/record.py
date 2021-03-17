@@ -45,6 +45,10 @@ class YesNo:
 class Record:
     """Record object"""
 
+    def __delitem__(sellf, key):
+        """Delete record datum"""
+        pass
+
     def __getitem__(self, key, value):
         """Get record datum"""
         pass
@@ -53,6 +57,14 @@ class Record:
         """Record constructor"""
         self.metadata = metadata
         self.raw_record = raw_record
+
+    def __len__(self):
+        return len(self.raw_record)
+
+    def __setitem__(self, key, value):
+        """Set record datum"""
+        pass
+
 
 
 
