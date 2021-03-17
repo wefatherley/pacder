@@ -22,14 +22,15 @@ class Project:
         self.connector = Connector(host, path, token)
         with self.connector as conn:
             self.metadata = Metadata(
-                conn.metadata("export"), conn.field_names("export"))
+                conn.metadata("export"), conn.field_names("export")
+            )
 
-    # def records(self, **query):
-    #     """Generates records"""
-    #     with self.connector as conn:
-    #         records = export_content("records", **query)
-    #     while any(records):
-    #         yield self.metadata.load_record(records.pop())
+    def records(self, **query):
+        """Generates records"""
+        with self.connector as conn:
+            records = export_content("records", **query)
+        while any(records):
+            yield Record(records.pop())
 
     def sql_migration(self, *args, **kwargs):
         """Return SQL migration for project metadata"""
@@ -37,10 +38,6 @@ class Project:
 
     def sync(self):
         """Update REDCap instance with project alterations"""
-        pass
-
-    def update_metadata(self, *args, **kwargs):
-        """Updates project metadata"""
         pass
 
 

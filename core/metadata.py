@@ -63,10 +63,20 @@ class Metadata:
     columns = COLUMNS
     html_parser = HTMLParser()
 
+    def __contains__(self, item):
+        """Implement membership test operators"""
+        if "___" in item and item in self.raw_field_names:
+            return True
+        if item in self.raw_metadata:
+            return True
+        return False
+
     def __delitem__(self, key):
         """Delete metadatum"""
         if "___" in key:
             raise Exception("can't delete a single checkbox field")
+        if key not in self.raw_metadata:
+            raise KeyError
         if self.raw_metadata[key]["field_type"] == "checkbox":
             for c in value[
                 "select_choices_or_calculations"
@@ -77,25 +87,43 @@ class Metadata:
         else:
             del self.raw_field_names[key]
         del self.raw_metadata[key]
-        
+
     def __getitem__(self, key):
-        """Get metadatum"""
-        if len(self.raw_field_names) == 0:
-            raise Exception("No export field names")
-        metadatum = self.raw_metadata[
-            self.raw_field_names[key]["original_field_name"]
-        ]
-        metadatum["branching_logic"] = self.load_logic(
-            metadatum["branching_logic"], as_func=True
-        )
-        if metadatum["required_field"] == "y":
-            metadatum["required_field"] = True
-        else:
-            metadatum["required_field"] = False
-        return metadatum
+        """Get lazily-casted metadatum"""
+        try:
+            return self.items[key]
+        except KeyError:
+            if "___" in key:
+                if key not in self.raw_field_names:
+                    raise KeyError
+                md = self.raw_metadata[
+                    self.raw_field_names[key]["original_field_name"]
+                ]
+            elif key in self.raw_metadata:
+                md = self.raw_metadata[key]
+            else:
+                raise KeyError
+            if md["field_type"] in {"checkbox", "radio"}:
+                md["select_choices_or_calculations"] = {
+                    int(k.strip()): v.strip()
+                    for k,v in (
+                        md[
+                            "select_choices_or_calculations"
+                        ].split("|")
+                    ).split(",")
+                }
+            md["branching_logic"] = self.load_logic(
+                md["branching_logic"], as_func=True
+            )
+            if md["required_field"] == "y":
+                md["required_field"] = True
+            md["required_field"] = False
+            self.items[key] = md
+            return md
 
     def __init__(self, raw_metadata={}, raw_field_names={}):
         """Contruct attributes"""
+        self.items = dict()
         self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
         self.raw_field_names = {
             d["export_field_name"]: d for d in raw_field_names
@@ -140,6 +168,11 @@ class Metadata:
             value["field_name"],
             value["field_type"]
         )
+
+    @classmethod
+    def load_calculation(cls, logic, as_func=False):
+        """Return evaluable field calculation"""
+        pass
 
     @classmethod
     def load_logic(cls, logic, as_func=False):

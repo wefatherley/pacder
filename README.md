@@ -1,5 +1,5 @@
 # WIP pacder
-Exposes the REDCap API through the Python programming langauge, allowing token holders to __delete__, __export__, and __import__ content related to one or more of their projects. Applications include ETL flows, project analysis, interview client development, and more.
+Exposes REDCap's API through the Python programming langauge, allowing token holders to __delete__, __export__, and __import__ content related to one or more of their projects, develop ETL flows, project analyses, interview clients, and more.
 ## Install
 Available for __Python 3.6+__.
 

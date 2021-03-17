@@ -1,8 +1,6 @@
 """Connector objects"""
 from http import client, HTTPStatus
-from io import BytesIO
 from logging import getLogger
-from urllib.parse import urlencode
 
 
 LOGGER = getLogger(__name__)
@@ -87,15 +85,7 @@ class BaseConnector(client.HTTPSConnection):
                     "API issues: status=%i, reason=%s",
                     response.status, response.reason
                 )
-                return response.status, ""
-
-    # def prepare_data(self, data):
-    #     """Return request-ready data"""
-    #     if isinstance(data, (dict, list, tuple)):
-    #         return BytesIO(urlencode(data).encode("latin-1"))
-    #     elif isinstance(data, str):
-    #         return BytesIO(data.encode("latin-1"))
-    #     raise Exception("Unable to build body")
+                return response.status, response.read()
 
     def set_effective_headers(self, action):
         """Set the request, or "effective" headers"""
@@ -123,6 +113,7 @@ class Connector(BaseConnector):
         self.method = "POST"
         super().__init__(host)
 
+    # TODO: format response bytes
     def delete_content(self, **parameters):
         """Delete content"""
         if data in parameters:
@@ -143,6 +134,7 @@ class Connector(BaseConnector):
         )
         return resp_data
         
+    # TODO: format response bytes
     def export_content(self, **parameters):
         """Export content"""
         if data in parameters:
@@ -163,6 +155,7 @@ class Connector(BaseConnector):
         )
         return resp_data
 
+    # TODO: format response bytes
     def import_content(self, data, **parameters):
         """Import content"""
         params = self.params
