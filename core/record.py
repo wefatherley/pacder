@@ -7,41 +7,6 @@ from .util import data_type_map
 LOGGER = getLogger(__name__)
 
 
-class Calc:
-    """Calc object"""
-    pass
-
-
-class Checkbox:
-    """Checkbox object"""
-    pass
-
-
-class Descriptive:
-    """Descriptive object"""
-    pass
-
-
-class Notes:
-    """Notes object"""
-    pass
-
-
-class Radio:
-    """Radio object"""
-    pass
-
-
-class Text:
-    """Text object"""
-    pass
-
-
-class YesNo:
-    """YesNo object"""
-    pass
-
-
 class Record:
     """Record object"""
 

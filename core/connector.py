@@ -54,7 +54,7 @@ class BaseConnector(client.HTTPSConnection):
                 )
                 if self.path_stack[-1] != self.path_stack[0]:
                     self.path_stack.append(self.path_stack[0])
-                return response
+                return response.status, response.read()
             else: #(
             #     HTTPStatus.MULTIPLE_CHOICES
             #     <= response.status <
