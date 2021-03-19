@@ -18,7 +18,6 @@ if args.command == "run":
 
     # initialize logging
     basicConfig(
-        filename="service.log",
         format="127.0.0.1 - - [%(asctime)s] %(message)s",
         datefmt="%d/%b/%Y %H:%M:%S",
         level=INFO
@@ -34,7 +33,7 @@ if args.command == "run":
         service.serve_forever()
     except (EOFError, KeyboardInterrupt):
         service.shutdown()
-        LOGGER.info("shut down successful")
+        LOGGER.info("shutdown successful")
         exit()
         
 
