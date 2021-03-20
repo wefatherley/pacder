@@ -38,11 +38,11 @@ class HTMLParser(HTMLParser):
     def handle_startendtag(self, tag, attrs):
         """Extract metadata elements"""
         if tag == "td":
-            column_name, index = attrs["for"].split("_")
+            col_name, index = attrs["for"].split("_")
             try:
-                self.raw_metadata[index][column_name] = attrs["value"]
+                self.raw_metadata[index][col_name] = attrs["value"]
             except KeyError:
-                self.raw_metadata[index] = {column_name: attrs["value"]}
+                self.raw_metadata[index] = {col_name: attrs["value"]}
 
 
 class SQL:
@@ -118,20 +118,27 @@ class Metadata:
             if md["required_field"] == "y":
                 md["required_field"] = True
             md["required_field"] = False
+            if md["identifier"] == "y":
+                md["identifier"] = True
+            md["identifier"] = False
             self.items[key] = md
             return md
 
     def __init__(self, raw_metadata={}, raw_field_names={}):
         """Contruct attributes"""
         self.items = dict()
-        self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
+        self.raw_metadata = {
+            d["field_name"]: d for d in raw_metadata
+        }
         self.raw_field_names = {
             d["export_field_name"]: d for d in raw_field_names
         }
 
     def __iter__(self):
         """Return raw metadata iterator"""
-        return (m for m in self.raw_metadata)
+        return (
+            self.__getitem__(key) for key in self.raw_field_names
+        )
 
     def __len__(self):
         """Return field count"""

@@ -1,9 +1,7 @@
-"""WIP"""
-from json import dumps
-
+"""WIP pacder core objects"""
 from .connector import Connector
 from .metadata import Metadata
-from .record import Record
+from .util import RecordDatum
 
 
 class Project:
@@ -30,7 +28,36 @@ class Project:
         with self.connector as conn:
             records = export_content("records", **query)
         while any(records):
-            yield Record(records.pop())
+            record = records.pop()
+            for key in record.keys():
+                branching_logic = self.metadata[key][
+                    "branching_logic"
+                ](record)
+                ofn = self.metadata[key]["field_name"]
+                raw_value = record[key]
+                valid = (
+                    self.metadata[key][
+                        "text_validation_min"
+                    ](record[key])
+                    and self.metadata[key][
+                        "text_validation_max"
+                    ](record[key])
+                )
+                value = data_type_map[
+                    self.metadata[
+                        "text_validation_type_or_show_slider_number"
+                    ][key]
+                ][0](record[key])
+                values = None
+                record[key] = RecordDatum(
+                    branching_logic=branching_logic,
+                    ofn=ofn,
+                    raw_value=raw_value,
+                    valid=valid,
+                    value=value,
+                    values=values
+                )
+            yield record
 
     def sql_migration(self, *args, **kwargs):
         """Return SQL migration for project metadata"""

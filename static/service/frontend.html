@@ -19,12 +19,18 @@ body {font-family: Arial, Helvetica, sans-serif; margin: 0;}
 @media screen and (max-width: 400px) {.navbar a {float: none; width: 100%;}}
 </style>
 </head>
+<script>
+  document.getElementById("summary").addEventListener("click", function() {})
+  document.getElementById("metadata").addEventListener("click", function() {})
+  document.getElementById("records").addEventListener("click", function() {})
+  document.getElementById("token").addEventListener("click", function() {})
+</script>
 <body>
 <div class="navbar">
-  <a href="#">summary</a>
-  <a href="#">metadata</a>
-  <a href="#">records</a>
-  <a href="#" class="right">tokens</a>
+  <a id="summary" href="http://127.0.0.1:8080/summary">summary</a>
+  <a id="metadata" href="http://127.0.0.1:8080/metadata">metadata</a>
+  <a id="records" href="http://127.0.0.1:8080/records">records</a>
+  <a id="tokens" href="http://127.0.0.1:8080/tokens" class="right">tokens</a>
 </div>
 <div class="row">
   <div class="main"></div>
