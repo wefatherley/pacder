@@ -23,13 +23,16 @@ class Service(server.BaseHTTPRequestHandler):
     def do_GET(self):
         """Handle GET requests"""
         if self.path == "/":
+            fp = open(FRONTEND_HTML_PATH, "rb")
+        elif self.path == "/metadata":
+            fp = open(METADATA_HTML_PATH, "rb")
+        elif self.path == "/records":
+            fp = open(RECORDS_HTML_PATH, "rb")
+        else: fp = None
+        if fp is not None:
             self.send_response(HTTPStatus.OK)
             self.send_header("content-type", "text/html")
             self.end_headers()
-            copyfileobj(open(FRONTEND_HTML_PATH, "rb"), self.wfile)
-        elif self.path == "/metadata":
-            self.send_error(HTTPStatus.NOT_FOUND)
-        elif self.path == "/records":
-            self.send_error(HTTPStatus.NOT_FOUND)
-        else:
-            self.send_error(HTTPStatus.NOT_FOUND)
+            copyfileobj(fp, self.wfile)
+        else: self.send_error(HTTPStatus.NOT_FOUND)
+        

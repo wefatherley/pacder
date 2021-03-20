@@ -118,6 +118,9 @@ class Metadata:
             if md["required_field"] == "y":
                 md["required_field"] = True
             md["required_field"] = False
+            if md["identifier"] == "y":
+                md["identifier"] = True
+            md["identifier"] = False
             self.items[key] = md
             return md
 

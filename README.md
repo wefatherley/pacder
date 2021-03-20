@@ -85,5 +85,3 @@ with Project(host, path, token) as proj:
     proj.sql_migration("/migrations/myproject.sql", table_groups="form_name")
 ```
 Please review the reference documentation for more usage information.
-### Graphical usage
-In addition to usage in a computer program, `pacder` also exposes through the command line a simple loopback server that serves a graphical tool for exploring records, editing metadata, and so on. Simply open the terminal and execute `python3 -m pacder run`, open a browser and visit the loopback address at port `8080`, i.e., `http://127.0.0.1:8080/`.

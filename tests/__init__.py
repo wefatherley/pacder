@@ -1,12 +1,12 @@
-"""redcapp tests"""
-from http import client, server, HTTPStatus
+"""pacder tests"""
+from http import server, HTTPStatus
 from threading import Thread
 from unittest import mock, TestCase
 
-from .. import Service
+from .. import *
 
 
-class TestService(Service):
+class TestService(server.BaseHTTPRequestHandler):
     """Service subclass for tests"""
 
     def do_POST(self):
@@ -54,28 +54,3 @@ class TestMetadata(TestCase):
 class TestProject(BaseWebTest):
     """Test core.Project"""
     pass
-
-
-class TestRecord(TestCase):
-    """Test core.Project"""
-    pass
-
-
-class TestService(BaseWebTest):
-    """Test HTTP core.Service"""
-
-    def test_DELETE(self):
-        """Test URLs that support DELETE"""
-        pass
-
-    def test_GET(self):
-        """Test URLs that support GET"""
-        pass
-
-    def test_POST(self):
-        """Test URLs that support POST"""
-        pass
-
-    def test_PUT(self):
-        """Test URLs that support PUT"""
-        pass
