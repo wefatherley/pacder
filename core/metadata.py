@@ -279,10 +279,8 @@ class Metadata:
     def load(self, fp, fmt="csv"):
         """Load formatted metadata from path"""
         if isinstance(fp, str):
-            if fmt == "csv":
-                fp = open(fp, "r", newline="")
-            else: 
-                fp = open(fp, "r")
+            if fmt == "csv": fp = open(fp, "r", newline="")
+            else: fp = open(fp, "r")
         if fmt == "csv":
             with fp:
                 reader = DictReader(fp, fieldnames=COLUMNS)

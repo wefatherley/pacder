@@ -1,5 +1,5 @@
 """WIP"""
-from http.server import BaseHTTPRequestHandler
+from http import server, HTTPStatus
 from logging import getLogger
 from os import path
 from shutil import copyfileobj
@@ -12,12 +12,12 @@ LOGGER = getLogger(__name__)
 
 
 PATH = path.dirname(__file__)
-FRONTEND_HTML = open(PATH + "/static/frontend.html", "rb")
-METADATA_HTML_PATH = open(PATH + "/static/metadata.html", "rb")
-RECORDS_HTML_PATH = open(PATH + "/static/records.html", "rb")
+FRONTEND_HTML = open(PATH + "/static/service/frontend.html", "rb")
+METADATA_HTML = open(PATH + "/static/service/metadata.html", "rb")
+RECORDS_HTML = open(PATH + "/static/service/records.html", "rb")
 
 
-class Service(BaseHTTPRequestHandler):
+class Service(server.BaseHTTPRequestHandler):
     """HTTP request handler"""
     
     def do_GET(self):
@@ -26,7 +26,10 @@ class Service(BaseHTTPRequestHandler):
             self.send_response(HTTPStatus.OK)
             self.send_header("content-type", "text/html")
             self.end_headers()
-            copyfileobj(open(FRONTEND_HTML_PATH, "rb"), self.wfile)
+            copyfileobj(FRONTEND_HTML, self.wfile)
+            LOGGER.info(
+                "get index: remote_addr=%s", self.client_address
+            )
         elif self.path == "/metadata":
             pass
         elif self.path == "/records":
