@@ -31,14 +31,14 @@ from pacder import Connector
 with Connector(host, path, token) as conn:
 
     # remove a file from the project
-    conn.delete_content("files", name="flowers.png")
+    conn.delete_content("files", name="virus.png")
     # or, identically,
-    conn.files("delete", name="flowers.png")
+    conn.files("delete", name="virus.png")
 
-    # fetch some records (a list of dicts)
-    my_records = conn.export_content("records", format="csv", filterLogic="[age] > 30", ...)
+    # fetch some records
+    records_string = conn.export_content("records", format="csv", filterLogic="[age] > 30", ...)
     # or, identically,
-    my_records = conn.records("export", format="csv", filterLogic="[age] > 30", ...)
+    records_string = conn.records("export", format="csv", filterLogic="[age] > 30", ...)
 
     # update a project's metadata
     with open("project_metadata.csv", "r") as fp:

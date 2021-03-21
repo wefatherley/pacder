@@ -1,41 +1,29 @@
-"""WIP Main"""
-from argparse import ArgumentParser
-from http import server, HTTPStatus
-from logging import basicConfig, getLogger, INFO
-from sys import exit
+"""CLI entrypoint"""
+from argparse import Action, ArgumentParser
+from logging import getLogger
 
-from . import Project, Service
+from . import *
 
 
-parser = ArgumentParser(prog="redcapp")
-parser.add_argument(
-    "command", choices=["run", "test"], help="Run or test services"
-)
-args = parser.parse_args()
+LOGGER = getLogger(__name__)
 
 
-if args.command == "run":
+class Project(Action):
+    """Identify project for subsequent flags"""
 
-    # initialize logging
-    basicConfig(
-        format="127.0.0.1 - - [%(asctime)s] %(message)s",
-        datefmt="%d/%b/%Y %H:%M:%S",
-        level=INFO
-    )
-    LOGGER = getLogger(__name__)
+    def __init__(self, *args, **kwargs):
+        """Construct project action"""
+        super().__init__(*args, **kwargs)
 
-    # spin up service
-    try:
-        service = server.ThreadingHTTPServer(
-            ("127.0.0.1", 8080), Service
-        )
-        LOGGER.info("listening on loopback, port 8080")
-        service.serve_forever()
-    except (EOFError, KeyboardInterrupt):
-        service.shutdown()
-        LOGGER.info("shutdown successful")
-        exit()
-        
+    def __call__(self, parser, namespace, values, option_string):
+        """Interact with projects"""
+        pass
 
-elif args.command == "test":
-    pass
+
+parser = ArgumentParser(prog="pacder")
+parser.add_argument("project", action=Project, nargs="*")
+
+
+"""
+pacder project -i records
+"""

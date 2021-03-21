@@ -1,6 +1,8 @@
 """Connector objects"""
 from http import client, HTTPStatus
+from io import BytesIO, IOBase
 from logging import getLogger
+from shutil import copyfileobj
 
 
 LOGGER = getLogger(__name__)
@@ -27,7 +29,7 @@ class BaseConnector(client.HTTPSConnection):
         """Exit context"""
         self.close()
     
-    def post(self, data):
+    def post(self, data=None):
         """Handle HTTP POST procedure"""
         try:
             self.putrequest(
@@ -37,55 +39,62 @@ class BaseConnector(client.HTTPSConnection):
                 self.putheader(k,v)
             self.endheaders(message_body=data)
         except Exception as e:
-            # TODO: perform certain retries
-            LOGGER.error("request threw exception: exc=%s", e)
-            return None
+            LOGGER.exception("request threw exception: exc=%s", e)
+            if isinstance(e, client.NotConnected):
+                try:
+                    LOGGER.info("reconnecting")
+                    self.connect()
+                    self.post(data)
+                except client.NotConnected:
+                    LOGGER.error("unable to connect")
+                    raise
         else:
             response = self.getresponse()
-            response.headers = {
-                k.lower(): v for k,v in response.headers
-            }
-            if response.status == HTTPStatus.OK:
+            if (
+                HTTPStatus.OK
+                <= response.status <
+                HTTPStatus.MULTIPLE_CHOICES
+            ):
                 LOGGER.info(
                     "response received sucessfully: octets=%s",
                     response.headers.get("content-length", "NA")
                 )
                 if self.path_stack[-1] != self.path_stack[0]:
                     self.path_stack.append(self.path_stack[0])
-                return response.status, response.read()
-            else: #(
-            #     HTTPStatus.MULTIPLE_CHOICES
-            #     <= response.status <
-            #     HTTPStatus.BAD_REQUEST
-            # ):
-            #     # TODO: perform certain retries
-            #     LOGGER.info(
-            #         "following redirect: link=%s",
-            #         response.headers.get("link")
-            #     )
-            #     redirect_path = self.parse_link_header(
-            #         response.headers.get("link")
-            #     )
-            #     self.path_stack.append(redirect_path)
-            #     return self.post(request)
-            # elif (
-            #     HTTPStatus.BAD_REQUEST
-            #     <= response.status <=
-            #     HTTPStatus.INTERNAL_SERVER_ERROR
-            # ):
-            #     # TODO: perform certain retries
-            #     LOGGER.error(
-            #         "bad request: status=%i, reason=%s",
-            #         response.status, response.reason
-            #     )
-            #     return None
-            # elif HTTPStatus.INTERNAL_SERVER_ERROR <= response.status:
+                return response
+            elif (
+                HTTPStatus.MULTIPLE_CHOICES
+                <= response.status <
+                HTTPStatus.BAD_REQUEST
+            ):
+                LOGGER.info(
+                    "following redirect: link=%s",
+                    response.headers.get("link")
+                )
+                null = response.read()
+                redirect_path = self.parse_link_header(
+                    response.headers.get("link")
+                )
+                self.path_stack.append(redirect_path)
+                self.post(data)
+            elif (
+                HTTPStatus.BAD_REQUEST
+                <= response.status <=
+                HTTPStatus.INTERNAL_SERVER_ERROR
+            ):
+                # TODO: perform certain retries
+                LOGGER.error(
+                    "bad request: status=%i, reason=%s",
+                    response.status, response.reason
+                )
+                return None
+            elif HTTPStatus.INTERNAL_SERVER_ERROR <= response.status:
                 # TODO: perform certain retries
                 LOGGER.error(
                     "API issues: status=%i, reason=%s",
                     response.status, response.reason
                 )
-                return response.status, response.read()
+                return None
 
     def set_effective_headers(self, action):
         """Set the request, or "effective" headers"""
@@ -108,12 +117,11 @@ class Connector(BaseConnector):
         """Construct API wrapper"""
         if path is None or token is None:
             raise RuntimeError("path and/or token required")
-        self.path_stack.append(path)
+        self.base_path = path
         self.params = "token={}".format(token)
         self.method = "POST"
         super().__init__(host)
 
-    # TODO: format response bytes
     def delete_content(self, **parameters):
         """Delete content"""
         if data in parameters:
@@ -124,17 +132,17 @@ class Connector(BaseConnector):
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
             params += "&{}={}".format(key, value)
-        params = params.encode("latin-1")
+        self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("delete")
-        resp_status, resp_data = self.post(params)
-        LOGGER.info(
-            "delete resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
-        )
-        return resp_data
+        resp = self.post()
+        if resp is not None:
+            LOGGER.info(
+                "delete resource: status=%i, content=%s",
+                resp_status,
+                parameters["content"]
+            )
+            return resp.read().decode("latin-1")
         
-    # TODO: format response bytes
     def export_content(self, **parameters):
         """Export content"""
         if data in parameters:
@@ -145,33 +153,34 @@ class Connector(BaseConnector):
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
             params += "&{}={}".format(key, value)
-        params = params.encode("latin-1")
+        self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("export")
-        resp_status, resp_data = self.post(params)
-        LOGGER.info(
-            "export resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
-        )
-        return resp_data
+        resp = self.post()
+        if resp is not None:
+            LOGGER.info(
+                "delete resource: status=%i, content=%s",
+                resp_status,
+                parameters["content"]
+            )
+            return resp.read().decode("latin-1")
 
-    # TODO: format response bytes
-    def import_content(self, data, **parameters):
+    def import_content(self, fp, **parameters):
         """Import content"""
         params = self.params
         for key, value in parameters.items():
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
             params += "&{}={}".format(key, value)
-        self.path_stack.append(self.path_stack[0] + "?" + params)
+        self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("import")
-        resp_status, resp_data = self.post(self.prepare_data(data))
-        LOGGER.info(
-            "import resource: status=%i, content=%s",
-            status,
-            parameters["content"]
-        )
-        return resp_data
+        resp = self.post(fp)
+        if resp is not None:
+            LOGGER.info(
+                "delete resource: status=%i, content=%s",
+                resp_status,
+                parameters["content"]
+            )
+            return resp.read().decode("latin-1")
         
     def arms(self, action, data=None, **parameters):
         """Modify arms"""
