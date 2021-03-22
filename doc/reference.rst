@@ -90,7 +90,7 @@ To interact with the API of a REDCap instance, it is necessary to utilize a "web
 :mod:`metadata` - Metadata object
 ---------------------------------
 
-A project's metadata (a.k.a. data dictionary) is the defining feature of the project itself, and houses important information related to the typing and validation of project records. This module defines a class, ``Metadata``, as a Pythonic abstraction.
+A project's metadata (a.k.a. data dictionary) is the defining feature of the project itself, and houses important information related to the typing, validation, and overall characteristics of project records. This module defines a class, :class:`Metadata`, that makes Pythonic the columns of a project's metadata, and also provides several convience methods for external application development.
 
 .. class:: Metadata(raw_metadata, raw_field_names)
 
