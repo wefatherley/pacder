@@ -2,7 +2,7 @@
 [![Documentation Status](https://readthedocs.org/projects/pacder/badge/?version=latest)](https://pacder.readthedocs.io/en/latest/?badge=latest)
 
 Exposes REDCap's API through the Python programming langauge, allowing token holders to __delete__, __export__, and __import__ content related to one or more of their projects, develop ETL flows, project analyses, interview clients, and more.
-## Install
+## WIP Install
 Available for __Python 3.6+__.
 
 Install the latest stable release with `pip`:
@@ -80,4 +80,4 @@ with Project(host, path, token) as proj:
     # but they can be made to go by, e.g., form name
     proj.sql_migration("/migrations/myproject.sql", table_groups="form_name")
 ```
-Please review the reference documentation for more usage information.
+Please review the [documentation](https://pacder.readthedocs.io/en/latest/index.html) for more usage information.
