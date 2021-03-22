@@ -23,6 +23,7 @@ class Project:
 
     def __exit__(self, typ, val, trb):
         """Exit context"""
+        self.sync()
         self.connector.close()
         # TODO: sync changes with redcap instance
 
@@ -76,6 +77,10 @@ class Project:
     def sql_migration(self, *args, **kwargs):
         """Return SQL migration for project metadata"""
         return self.metadata.sql_migration(*args, **kwargs)
+
+    def sync(self):
+        """Import project changes"""
+        raise NotImplementedError
 
 
 __all__ = ["Connector", "Metadata", "Project"]

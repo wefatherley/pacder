@@ -9,7 +9,7 @@ LOGGER = getLogger(__name__)
 
 
 class Project(Action):
-    """Identify project for subsequent flags"""
+    """WIP"""
 
     def __init__(self, *args, **kwargs):
         """Construct project action"""
@@ -22,8 +22,4 @@ class Project(Action):
 
 parser = ArgumentParser(prog="pacder")
 parser.add_argument("project", action=Project, nargs="*")
-
-
-"""
-pacder project -i records
-"""
+parser.parse_args()

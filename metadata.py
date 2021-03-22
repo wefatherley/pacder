@@ -2,7 +2,9 @@
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
 from itertools import groupby, zip_longest
-from json import dump as dump_json, load as load_json
+from json import (
+    dump as dump_json, load as load_json, loads as loads_json
+)
 from logging import getLogger
 from re import compile, finditer, sub
 
@@ -15,10 +17,11 @@ LOGGER = getLogger(__name__)
 COLUMNS = [
     "field_name", "form_name", "section_header", "field_type",
     "field_label", "select_choices_or_calculations", "field_note",
-    "text_validation_type_or_show_slider_number" ,"text_validation_min",
-    "text_validation_max", "identifier", "branching_logic",
-    "required_field", "custom_alignment", "question_number",
-    "matrix_group_name", "matrix_ranking", "field_annotation",
+    "text_validation_type_or_show_slider_number",
+    "text_validation_min", "text_validation_max", "identifier",
+    "branching_logic", "required_field", "custom_alignment",
+    "question_number", "matrix_group_name", "matrix_ranking",
+    "field_annotation",
 ]
 
 
@@ -124,8 +127,9 @@ class Metadata:
             self.items[key] = md
             return md
 
-    def __init__(self, raw_metadata={}, raw_field_names={}):
+    def __init__(self, raw_metadata, raw_field_names):
         """Contruct attributes"""
+        # TODO: parse byte/string input
         self.items = dict()
         self.raw_metadata = {
             d["field_name"]: d for d in raw_metadata
@@ -151,8 +155,8 @@ class Metadata:
         if list(value.keys()) != self.columns:
             raise Exception("New field missing columns")
         self.raw_metadata.append(value)
+        ofn = value["field_name"]
         if value["field_type"] == "checkbox":
-            ofn = value["field_name"]
             for c in value[
                 "select_choices_or_calculations"
             ].split("|"):
@@ -177,9 +181,14 @@ class Metadata:
         )
 
     @classmethod
-    def load_calculation(cls, logic, as_func=False):
+    def load_calculation(cls, calculation, as_func=False):
         """Return evaluable field calculation"""
-        pass
+        raise NotImplementedError
+
+    @classmethod
+    def dump_calculation(cls, calculation):
+        """Return evaluable field calculation"""
+        raise NotImplementedError
 
     @classmethod
     def load_logic(cls, logic, as_func=False):
@@ -247,7 +256,7 @@ class Metadata:
         return logic
 
     def dump(self, fp, fmt="csv"):
-        """Dump formatted metadata to path"""
+        """Dump formatted metadata to file pointer"""
         if len(self) == 0:
             raise Exception("Cannot dump empty metadata")
         if isinstance(fp, str):
@@ -284,7 +293,7 @@ class Metadata:
             raise Exception("unsupported dump format")
 
     def load(self, fp, fmt="csv"):
-        """Load formatted metadata from path"""
+        """Load formatted metadata from file pointer"""
         if isinstance(fp, str):
             if fmt == "csv": fp = open(fp, "r", newline="")
             else: fp = open(fp, "r")
