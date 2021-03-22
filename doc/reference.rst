@@ -92,6 +92,10 @@ To interact with the API of a REDCap instance, it is necessary to utilize a "web
 
 A project's metadata (a.k.a. data dictionary) is the defining feature of the project itself, and houses important information related to the typing and validation of project records. This module defines a class, ``Metadata``, as a Pythonic abstraction.
 
+.. class:: Metadata(raw_metadata, raw_field_names)
+
+   This class is the "public" interface to a REDCap project's metadata. As a container emulator, a given project field is accessible in the same manner as accessing the values of a dictionary. 
+
 
 :mod:`util` - Utility objects
 -----------------------------
