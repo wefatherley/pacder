@@ -1,4 +1,5 @@
 """pacder"""
+from json import loads
 from logging import getLogger
 
 from .connector import Connector
@@ -35,8 +36,11 @@ class Project:
 
     def records(self, **query):
         """Generates records"""
+        query["format"] = "json"
         with self.connector as conn:
-            records = export_content("records", **query)
+            records = loads(
+                export_content("records", **query).decode("latin-1")
+            )
         while any(records):
             record = records.pop()
             for key in record.keys():

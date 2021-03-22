@@ -6,7 +6,7 @@ from unittest import mock, TestCase
 from .. import *
 
 
-class TestService(server.BaseHTTPRequestHandler):
+class MockAPIHandler(server.BaseHTTPRequestHandler):
     """Service subclass for tests"""
 
     def do_POST(self):
@@ -25,7 +25,7 @@ class BaseWebTest(TestCase):
     def setUpClass(cls):
         """Set up HTTP server"""
         cls.service = server.ThreadingHTTPServer(
-            ("127.0.0.1", 8080), TestService
+            ("127.0.0.1", 8080), MockAPIHandler
         )
         t = threading.Thread(target=cls.service.serve_forever)
         t.start()
@@ -48,7 +48,19 @@ class TestClient(BaseWebTest):
 
 class TestMetadata(TestCase):
     """Test core.Metadata"""
-    pass
+    @classmethod
+    def setUpClass(cls):
+        """Set up HTTP server"""
+        cls.service = server.ThreadingHTTPServer(
+            ("127.0.0.1", 8080), MockAPIHandler
+        )
+        t = threading.Thread(target=cls.service.serve_forever)
+        t.start()
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down HTTP server"""
+        cls.service.shutdown()
 
 
 class TestProject(BaseWebTest):

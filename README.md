@@ -36,9 +36,9 @@ with Connector(host, path, token) as conn:
     conn.files("delete", name="virus.png")
 
     # fetch some records
-    records_string = conn.export_content("records", format="csv", filterLogic="[age] > 30", ...)
+    records_bytes = conn.export_content("records", format="csv", filterLogic="[age] > 30", ...)
     # or, identically,
-    records_string = conn.records("export", format="csv", filterLogic="[age] > 30", ...)
+    records_bytes = conn.records("export", format="csv", filterLogic="[age] > 30", ...)
 
     # update a project's metadata
     with open("project_metadata.csv", "r") as fp:
@@ -60,23 +60,17 @@ with Project(host, path, token) as proj:
     # handle and inspect records
     for record in proj.records(filterLogic="[age] < 65"):
 
-        # get the original field name of a checkbox variable
-        comorbids_ofn = record["comorbid___123"].original_field_name
-
-        # perform temporal comparisons
-        if record["sign_up_date"].value < date(2021, 5, 1):
+        # perform logical comparisons with Python typing
+        if (
+            record["sign_up_date"].value < date(2021, 5, 1)
+            and not record["comorbitiy_count"].valid
+        ):
             print("{} signed up too early!!".format(record["name"].value))
 
-        # make decisions based on a record's branching logic
-        if record["available_vaccine_sites"].logic:
-            print("{} saw vax sites!!".format(record["name"].value))
-
-    # add a field to the project metadata
+    # update project by adding a new/replacement field
     proj.metadata["vaccine_manufacturer"] = {"field_type": "radio", ...}
-    # hide an existing field
+    # hide an existing/replaced field
     proj.metadata["vaccine"]["field_annotation"] = "@HIDDEN"
-    # update the redcap instance
-    proj.sync()
 
     # create a SQL migration from project metadata for auxiliary relational datastore
     proj.sql_migration("/migrations/myproject.sql")

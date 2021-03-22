@@ -1,8 +1,6 @@
-"""Connector objects"""
+"""Connector objects """
 from http import client, HTTPStatus
-from io import BytesIO, IOBase
 from logging import getLogger
-from shutil import copyfileobj
 
 
 LOGGER = getLogger(__name__)
@@ -44,7 +42,7 @@ class BaseConnector(client.HTTPSConnection):
                 try:
                     LOGGER.info("reconnecting")
                     self.connect()
-                    self.post(data)
+                    self.post(data=data)
                 except client.NotConnected:
                     LOGGER.error("unable to connect")
                     raise
@@ -59,8 +57,6 @@ class BaseConnector(client.HTTPSConnection):
                     "response received sucessfully: octets=%s",
                     response.headers.get("content-length", "NA")
                 )
-                if self.path_stack[-1] != self.path_stack[0]:
-                    self.path_stack.append(self.path_stack[0])
                 return response
             elif (
                 HTTPStatus.MULTIPLE_CHOICES
@@ -76,7 +72,7 @@ class BaseConnector(client.HTTPSConnection):
                     response.headers.get("link")
                 )
                 self.path_stack.append(redirect_path)
-                self.post(data)
+                self.post(data=data)
             elif (
                 HTTPStatus.BAD_REQUEST
                 <= response.status <=
@@ -84,17 +80,17 @@ class BaseConnector(client.HTTPSConnection):
             ):
                 # TODO: perform certain retries
                 LOGGER.error(
-                    "bad request: status=%i, reason=%s",
+                    "erroneous request: status=%i, reason=%s",
                     response.status, response.reason
                 )
-                return None
+                return response
             elif HTTPStatus.INTERNAL_SERVER_ERROR <= response.status:
                 # TODO: perform certain retries
                 LOGGER.error(
                     "API issues: status=%i, reason=%s",
                     response.status, response.reason
                 )
-                return None
+                return response
 
     def set_effective_headers(self, action):
         """Set the request, or "effective" headers"""
@@ -135,13 +131,12 @@ class Connector(BaseConnector):
         self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("delete")
         resp = self.post()
-        if resp is not None:
-            LOGGER.info(
-                "delete resource: status=%i, content=%s",
-                resp_status,
-                parameters["content"]
-            )
-            return resp.read().decode("latin-1")
+        LOGGER.info(
+            "delete resource: status=%i, content=%s",
+            resp_status,
+            parameters["content"]
+        )
+        return resp.read()
         
     def export_content(self, **parameters):
         """Export content"""
@@ -156,13 +151,12 @@ class Connector(BaseConnector):
         self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("export")
         resp = self.post()
-        if resp is not None:
-            LOGGER.info(
-                "delete resource: status=%i, content=%s",
-                resp_status,
-                parameters["content"]
-            )
-            return resp.read().decode("latin-1")
+        LOGGER.info(
+            "delete resource: status=%i, content=%s",
+            resp_status,
+            parameters["content"]
+        )
+        return resp.read()
 
     def import_content(self, fp, **parameters):
         """Import content"""
@@ -174,13 +168,12 @@ class Connector(BaseConnector):
         self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("import")
         resp = self.post(fp)
-        if resp is not None:
-            LOGGER.info(
-                "delete resource: status=%i, content=%s",
-                resp_status,
-                parameters["content"]
-            )
-            return resp.read().decode("latin-1")
+        LOGGER.info(
+            "delete resource: status=%i, content=%s",
+            resp_status,
+            parameters["content"]
+        )
+        return resp.read()
         
     def arms(self, action, data=None, **parameters):
         """Modify arms"""
