@@ -69,3 +69,5 @@ class TestMetadata(TestCase):
 class TestProject(WebTestCase):
     """Test core.Project"""
     pass
+
+test_runner, test_suite = None, None
