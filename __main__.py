@@ -38,7 +38,4 @@ elif args.command == "init":
         home = getcwd()
     if ".config" not in listdir(home):
         makedirs(home + "/.config/pacder", mode=0o740)
-    if all(args.host, args.path, args.token):
-        proj = Project(args.host, args.path, args.token)
-
     
