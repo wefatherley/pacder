@@ -6,9 +6,9 @@
 **pacder**: exposes the REDCap API
 ==================================
 
-`REDCap <http://www.project-redcap.org>`_ is a robust electronic data capture platform built by Vanderbilt University. This package contains tools for interacting with a REDCap instance, via the REDCap API. Central to the API are three core *actions*, **delete**, **export**, and **import**, each of which permit an external application to interact via HTTP with a *project* residing in the REDCap instance. The external application might for example be an interview/experiment/... client that investigators use to collect project data, or it could be a client that crawls the data of project, or any other such thing.
+`REDCap <http://www.project-redcap.org>`_ is a robust electronic data capture platform built by Vanderbilt University. This package contains tools for interacting with a REDCap instance, via the REDCap API. The REDCap API is composed of three *actions*, **delete**, **export**, and **import**, each of which permit an external application to interact via HTTP with a *project* residing in the REDCap instance. The external application might for example be an interview/experiment/... client that investigators use to collect project data, be it human interview responses or chemical instrumentation data. Further, the external application could be a client that crawls through data of multiple projects to ensure good practices, or any other such thing.
 
-The aim of this package is to expose through the Python programming langauge the REDCap API. Usage generally exists at two different layers. At the low level, interaction with a REDCap project can be performed with the :class:`Connector` object, which returns raw response data as bytes::
+The aim of this package is to expose through the Python programming langauge the REDCap API, and enable developers to write external applications that revolve around REDCap. On one hand, all that is necessary to wrap the REDCap API is a HTTP client that can perform the three actions for any REDCap content. On the other hand, REDCap projects are nuanced enough to limit rapid or robust development of external applications-- project records returned by a vanilla HTTP client will contain data whose native typing is masked by their string representation; project metadata will contain, e.g., branching logic that, as returned by a vanilla HTTP client, cannot be evaluated by Python; and so on. To address these nuances, ``pacder`` exposes the REDCap API with two abstraction layers. At the low level, interaction with a REDCap project can be performed with the :class:`Connector` object, which returns response data as bytes::
 
    # First, find your API location/credentials, e.g.,
    from os import getenv
@@ -40,9 +40,9 @@ The aim of this package is to expose through the Python programming langauge the
          # or, identically,
          import_bytes = conn.metadata("import", fp)
 
-The :class:`Connector` object provides enough logic to handle tasks like writing a CSV file of records or metadata. It is also possible to perform more "atomic" inspections of, e.g., a record set by going like ``json.loads(records_bytes.decode("latin-1"))``.
+The :class:`Connector` object provides enough logic to handle tasks like writing a CSV file of records or metadata, importing such data, or deleting it. It is also possible to perform more "atomic" inspections of, e.g., a record set by going like ``json.loads(records_bytes.decode("latin-1"))``.
 
-However, since most record data come through as a string in this circumstance (i.e. a date), they will invariably lack comparison operators, which isn't very useful. Nonetheless, if the project has metadata that specifies appropriate typing for such record data, this package also provides a higher-level interface, the :class:`Project` object. This object furnishes type-casting based on the project metadata, much like an ORM, and has other useful features::
+To furnish external applications with more logic and tools for working on REDCap data, ``pacder`` also provides a higher-level interface, the :class:`Project` object. This object exposes the REDCap API also, but acts more like an ORM::
 
    from datetime import date
 
@@ -51,7 +51,7 @@ However, since most record data come through as a string in this circumstance (i
    # use project object as a context manager (or not)
    with Project(host, path, token) as proj:
 
-      # handle and inspect records
+      # export, inspect records Pythonically
       for record in proj.records(filterLogic="[age] < 65"):
 
          # perform logical comparisons with Python typing
@@ -66,11 +66,13 @@ However, since most record data come through as a string in this circumstance (i
       # hide an existing/replaced field
       proj.metadata["vaccine"]["field_annotation"] = "@HIDDEN"
 
-      # create a SQL migration from project metadata for auxiliary relational datastore
+      # create a SQL migration from project metadata
       proj.sql_migration("/migrations/myproject.sql")
       # by default the migration has tables that go by field type,
       # but they can be made to go by, e.g., form name
       proj.sql_migration("/migrations/myproject.sql", table_groups="form_name")
+
+As seen above :class:`Project` has a few of it's own convenience methods, like ``Project.records`` for fetching records, but it also has as attributes a :class:`Connector` instance at ``Project.connector``, and project metadata abstraction at ``Project.metadata``. For more information on this attribute, see :class:`Metadata`.
 
 .. toctree::
    :maxdepth: 2

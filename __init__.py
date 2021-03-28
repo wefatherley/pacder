@@ -10,10 +10,6 @@ from .util import RecordDatum
 LOGGER = getLogger(__name__)
 
 
-class BaseProject:
-    pass
-
-
 class Project:
     """Project container"""
 
