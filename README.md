@@ -4,6 +4,8 @@
 
 Exposes REDCap's API through the Python programming langauge, allowing token holders to __delete__, __export__, and __import__ project content. Use this package to develop ETL flows, project analyses, interview clients, and so on.
 
+CONTRIBUTING: Please contribute if you like, this package is still in it's infancy.
+
 ## Install
 Built on top of the Python standard library, and available for __Python 3.6+__. Install the latest stable release with `pip`:
 
