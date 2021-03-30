@@ -8,6 +8,7 @@ from .util import RecordDatum
 
 
 LOGGER = getLogger(__name__)
+TVTOSSN = "text_validation_type_or_show_slider_number"
 
 
 class Project:
@@ -39,34 +40,51 @@ class Project:
                 export_content("records", **query).decode("latin-1")
             )
         while any(records):
+            checkboxes = dict()
             record = records.pop()
             for key in record.keys():
-                branching_logic = self.metadata[key][
-                    "branching_logic"
-                ](record)
                 ofn = self.metadata[key]["field_name"]
                 raw_value = record[key]
                 valid = (
                     self.metadata[key][
                         "text_validation_min"
-                    ](record[key])
+                    ](raw_value)
                     and self.metadata[key][
                         "text_validation_max"
-                    ](record[key])
+                    ](raw_value)
                 )
-                value = data_type_map[
-                    self.metadata[
-                        "text_validation_type_or_show_slider_number"
-                    ][key]
-                ][0](record[key])
-                values = None
-                record[key] = RecordDatum(
-                    branching_logic=branching_logic,
+                if self.metadata[key]["field_type"] == "checkbox":
+                    subkey = key.split("___")[-1]
+                    try:
+                        checkboxes[ofn][subkey] = record[key]
+                    except KeyError:
+                        checkboxes[ofn] = {subkey: record[key]}
+                else:
+                    value = data_type_map[
+                        self.metadata[key][TVTOSSN]
+                    ][0](record[key])
+                    values = [value]
+                    record[key] = RecordDatum(
+                        branching_logic=self.metadata[key][
+                            "branching_logic"
+                        ](record),
+                        ofn=ofn,
+                        raw_value=raw_value,
+                        valid=valid,
+                        value=value,
+                        values=values
+                    )
+            for k,vals in checkboxes.items():
+                bl = self.metadata[k]["branching_logic"](record)
+                atleastone = any(vals.values())
+                valid = not (atleastone and not bl) # WIP
+                record[k] = RecordDatum(
+                    branching_logic=bl,
                     ofn=ofn,
-                    raw_value=raw_value,
+                    raw_value=vals,
                     valid=valid,
-                    value=value,
-                    values=values
+                    value=atleastone,
+                    values={k: bool(v) for k,v in vals.items()}
                 )
             yield record
 
