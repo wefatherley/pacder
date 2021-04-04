@@ -1,15 +1,25 @@
 """pacder tests"""
 from http import server, HTTPStatus
 from threading import Thread
-from unittest import mock, TestCase
+from unittest import (
+    mock, TestCase, TestLoader, TestRunner, TestSuite, TestResult
+)
 from urllib.parse import parse_qs, urlparse
 
 from .. import *
 
 
 RESPONSE_DATA = {
+    "testpost": b"oh stop it you",
     "records": b'[{"patient_id": "p001"}]',
 }
+
+TEST_METADATA = """
+field_name,form_name,section_header,field_type,field_label,select_choices_or_calculations,field_note,text_validation_type_or_show_slider_number,text_validation_min,text_validation_max,identifier,branching_logic,required_field,custom_alignment,question_number,matrix_group_name,matrix_ranking,field_annotation
+patient_id,demographics,,text,"Patient ID",,"Scan the bottom QR code",,,,,,,,,,,@BARCODE-APP
+""".strip()
+
+
 
 
 class MockAPIHandler(server.BaseHTTPRequestHandler):
@@ -19,13 +29,10 @@ class MockAPIHandler(server.BaseHTTPRequestHandler):
         """Handle POST requests"""
         url = parse.urlparse(self.path)
         query = parse_qs(url.query)
-        if query["content"] == "records":
+        if self.path == "/testpost":
             self.send_response(HTTPStatus.OK)
-            self.send_header(
-                "content-type", "text/{}".format(query["format"])
-            )
             self.end_headers()
-            self.wfile.write(RESPONSE_DATA[query["content"]])
+            self.wfile.write(RESPONSE_DATA["testpost"])
         else:
             self.send_error(HTTPStatus.NOT_FOUND)
 
@@ -39,7 +46,7 @@ class WebTestCase(TestCase):
         cls.service = server.ThreadingHTTPServer(
             ("127.0.0.1", 8080), MockAPIHandler
         )
-        t = threading.Thread(target=cls.service.serve_forever)
+        t = Thread(target=cls.service.serve_forever)
         t.start()
 
     @classmethod
@@ -48,26 +55,42 @@ class WebTestCase(TestCase):
         cls.service.shutdown()
 
 
-class TestClient(WebTestCase):
-    """Test core.Connector"""
+class TestBaseConnector(WebTestCase):
+    """Test BaseConnector object"""
     
-    def test_BaseConnector(self):
-        pass
+    def test_post(self):
+        """Test below app-layer"""
+        bconn = BaseConnector
+        bconn.method = "POST"
+        bconn.pathstack.append("/testpost")
+        with bconn("127.0.0.1") as tconn:
+            resp_bytes = tconn.post(data="hello wrold!!")
+            self.assertEqual(resp_bytes, b"oh stop it you")
 
-    def test_Connector(self):
-        pass
+    def test_redirect(self):
+        with Connector("127.0.0.1", "/testredirect", "foo"):
+            pass
 
-    def test_redirection(self):
-        pass
+
+class TestConnector(WebTestCase):
+    """Test Connector object"""
+    pass
 
 
 class TestMetadata(TestCase):
-    """Test core.Metadata"""
+    """Test Metadata object"""
     pass
 
 
 class TestProject(WebTestCase):
-    """Test core.Project"""
+    """Test Project object"""
     pass
+
+
+class PacderTestSuite(TestSuite):
+    """Gather and house test cases"""
+    pass
+
+
 
 test_runner, test_suite = None, None

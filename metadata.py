@@ -87,9 +87,25 @@ class Metadata:
                 del self.raw_field_names[
                     key + "___" + c.split(",")[0].strip()
                 ]
-        else:
-            del self.raw_field_names[key]
         del self.raw_metadata[key]
+
+    def __eq__(self, other):
+        """Implement `=`"""
+        if type(self) is not type(other):
+            return NotImplemented
+        if (
+            hasattr(other, "items")
+            and hasattr(other, "raw_field_names")
+            and hasattr(other, "raw_metadata")
+        ):
+            if (
+                other.items == self.items
+                and other.raw_field_names == self.raw_field_names
+                and other.raw_metadata == self.raw_metadata
+            ):
+                return True
+        return False
+        
 
     def __getitem__(self, key):
         """Get lazily-casted metadatum"""

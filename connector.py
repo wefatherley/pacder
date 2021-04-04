@@ -33,6 +33,9 @@ class BaseConnector(client.HTTPSConnection):
             self.putrequest(
                 method=self.method, url=self.path_stack[-1]
             )
+            if data is None:
+                self.putheader("content-length", "0")
+            else:
             for k,v in self.effective_headers.items():
                 self.putheader(k,v)
             self.endheaders(message_body=data)
