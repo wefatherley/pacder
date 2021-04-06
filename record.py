@@ -7,9 +7,6 @@ from .util import data_type_map
 LOGGER = getLogger(__name__)
 
 
-TVTOSSN = "text_validation_type_or_show_slider_number"
-
-
 RecordDatum = namedtuple(
     "RecordDatum",
     [
@@ -23,68 +20,63 @@ RecordDatum = namedtuple(
 )
 
 
-class Record:
+class Record(dict):
     """Record container"""
-
-    def __contains__(self, item):
-        """Implement membership test operators"""
-        pass
-
-    def __getitem__(self, key):
-        """Get lazily-casted data"""
-        data = self.items[key]
-        if isinstance(data, RecordDatum):
-            return data
-        ofn = self.metadata[key]["field_name"]
-        valid = (
-            self.metadata[key]["text_validation_min"](data)
-            and self.metadata[key]["text_validation_max"](data)
-        )
-        if self.metadata[key]["field_type"] == "checkbox":
-            if "___" in key:
-                pass
-            else:
-                pass
-        else:
-            value = data_type_map[
-                self.metadata[key][TVTOSSN]
-            ][0](data)
-            values = [data]
-            record_datum = RecordDatum(
-                branching_logic=self.metadata[key][
-                    "branching_logic"
-                ](record),
-                ofn=ofn,
-                raw_value=raw_value,
-                valid=valid,
-                value=value,
-                values=values
-            )
-            self.items[key] = record_datum
-            return record_datum
-        for k,vals in checkboxes.items():
-            bl = self.metadata[k]["branching_logic"](record)
-            atleastone = any(vals.values())
-            valid = not (atleastone and not bl) # WIP
-            record[k] = RecordDatum(
-                branching_logic=bl,
-                ofn=ofn,
-                raw_value=vals,
-                valid=valid,
-                value=atleastone,
-                values={k: bool(v) for k,v in vals.items()}
-            )
 
     def __init__(self, raw_record, **kwargs):
         """Construct record"""
-        self.items = raw_record
-        if "metadata" in kwargs:
-            self.metadata = kwargs["metadata"]
-        else:
-            self.metadata = dict()
-            LOGGER.warn("Record has no metadata")
+        if "metadata" not in kwargs:
+            raise Exception("Record needs metadata")
+        super().__init__()
+        self.metadata = kwargs["metadata"]
+        self.raw_record = raw_record
+        checkboxes = dict()
+        for k,v in self.raw_record.items():
+            if self.metadata[k]["field_type"] == "checkbox":
+                ofn, choice = k.split("___")
+                v = True if v else False
+                try: checkboxes[ofn][choice] = v
+                except KeyError: checkboxes[ofn] = {choice: v}
+            else:
+                branching_logic = self.metadata[k][
+                    "branching_logic"
+                ](raw_record)
+                valid = (
+                    self.metadata[k]["text_validation_min"](v)
+                    and self.metadata[k]["text_validation_max"](v)
+                )
+                if self.metadata[k]["required_filed"]:
+                    valid = valid and v
+                typed_v = data_type_map[
+                    self.metadata[k][self.metadata.columns[7]]
+                ][0](v)
+                self[k] = RecordDatum(
+                    branching_logic=branching_logic,
+                    ofn=k,
+                    raw_value=v,
+                    valid=valid,
+                    value=typed_v,
+                    values=None
+                )
+        for k,v in checkboxes.items():
+            branching_logic = self.metadata[k][
+                "branching_logic"
+            ](raw_record)
+            value = any(v.values())
+            valid = True
+            if branching_logic and not value:
+                valid = False
+            self[k] = RecordDatum(
+                branching_logic=branching_logic,
+                ofn=k,
+                raw_value=None,
+                valid=valid,
+                value=value,
+                values=v
+            )
 
     def __setitem__(self, key, value):
         """Set record item"""
         if key not in self.metadata.raw_field_names:
             raise Exception("Field not in project metadata")
+        super().__setitem__(key, value)

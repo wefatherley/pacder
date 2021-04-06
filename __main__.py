@@ -36,6 +36,9 @@ elif args.command == "init":
         home = environ["HOME"]
     except KeyError:
         home = getcwd()
-    if ".config" not in listdir(home):
+    if (
+        ".config" not in listdir(home)
+        or "pacder" not in listdir(home + "/.config")
+    ):
         makedirs(home + "/.config/pacder", mode=0o740)
     

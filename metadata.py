@@ -135,12 +135,12 @@ class Metadata:
             md["branching_logic"] = self.load_logic(
                 md["branching_logic"], as_func=True
             )
+            md["required_field"] = False
             if md["required_field"] == "y":
                 md["required_field"] = True
-            md["required_field"] = False
+            md["identifier"] = False
             if md["identifier"] == "y":
                 md["identifier"] = True
-            md["identifier"] = False
             self.items[key] = md
             return md
 
