@@ -148,17 +148,4 @@ data_type_map = {
 }
 
 
-RecordDatum = namedtuple(
-    "RecordDatum",
-    [
-        "branching_logic",
-        "ofn",
-        "raw_value",
-        "valid",
-        "value",
-        "values"
-    ]
-)
-
-
-__all__ = ["data_type_map", "RecordDatum",]
+__all__ = ["data_type_map",]

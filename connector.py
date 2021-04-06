@@ -1,5 +1,6 @@
 """Connector objects """
 from http import client, HTTPStatus
+from io import IOBase
 from logging import getLogger
 
 
@@ -33,17 +34,19 @@ class BaseConnector(client.HTTPSConnection):
             self.putrequest(
                 method=self.method, url=self.path_stack[-1]
             )
-            if data is None:
-                self.putheader("content-length", "0")
+            if isinstance(data, IOBase):
+                data = bytes(data.read(), "latin-1")
             else:
             for k,v in self.effective_headers.items():
                 self.putheader(k,v)
+            if data is not None:
+                self.putheader("content-length", len(data))
             self.endheaders(message_body=data)
         except Exception as e:
             LOGGER.exception("request threw exception: exc=%s", e)
             if isinstance(e, client.NotConnected):
                 try:
-                    LOGGER.info("reconnecting")
+                    LOGGER.info("trying to reconnect")
                     self.connect()
                     self.post(data=data)
                 except client.NotConnected:
@@ -66,31 +69,23 @@ class BaseConnector(client.HTTPSConnection):
                 <= response.status <
                 HTTPStatus.BAD_REQUEST
             ):
+                resp_data = response.read().decode("latin-1")
                 LOGGER.info(
-                    "following redirect: link=%s",
-                    response.headers.get("link")
+                    "following redirect: link=%s, resp_data=%s",
+                    response.headers.get("link"),
+                    resp_data
                 )
-                null = response.read()
                 redirect_path = self.parse_link_header(
                     response.headers.get("link")
                 )
                 self.path_stack.append(redirect_path)
                 self.post(data=data)
-            elif (
-                HTTPStatus.BAD_REQUEST
-                <= response.status <=
-                HTTPStatus.INTERNAL_SERVER_ERROR
-            ):
+            elif response.status >= HTTPStatus.BAD_REQUEST:
+                # 400s and 500s compacted into one elif for now
                 # TODO: perform certain retries
+                # TODO: verify REDCap exceptions are tied to 400s/500s
                 LOGGER.error(
                     "erroneous request: status=%i, reason=%s",
-                    response.status, response.reason
-                )
-                return response
-            elif HTTPStatus.INTERNAL_SERVER_ERROR <= response.status:
-                # TODO: perform certain retries
-                LOGGER.error(
-                    "API issues: status=%i, reason=%s",
                     response.status, response.reason
                 )
                 return response

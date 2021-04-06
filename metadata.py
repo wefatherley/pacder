@@ -1,6 +1,7 @@
 """Metadata and associated objects"""
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
+from io import TextIOBase
 from itertools import groupby, zip_longest
 from json import (
     dump as dump_json, load as load_json, loads as loads_json
@@ -90,7 +91,7 @@ class Metadata:
         del self.raw_metadata[key]
 
     def __eq__(self, other):
-        """Implement `=`"""
+        """Implement `==`"""
         if type(self) is not type(other):
             return NotImplemented
         if (
@@ -143,9 +144,8 @@ class Metadata:
             self.items[key] = md
             return md
 
-    def __init__(self, raw_metadata, raw_field_names):
+    def __init__(self, raw_metadata, raw_field_names, **kwargs):
         """Contruct attributes"""
-        # TODO: parse byte/string input
         self.items = dict()
         self.raw_metadata = {
             d["field_name"]: d for d in raw_metadata
@@ -153,6 +153,8 @@ class Metadata:
         self.raw_field_names = {
             d["export_field_name"]: d for d in raw_field_names
         }
+        if "project" in kwargs:
+            self.project = kwargs["project"]
 
     def __iter__(self):
         """Return raw metadata iterator"""
@@ -271,21 +273,20 @@ class Metadata:
             logic += oper_frag + vari_frag
         return logic
 
-    def dump(self, fp, fmt="csv"):
+    def dump(self, fp, fmt="csv", close_fp=True):
         """Dump formatted metadata to file pointer"""
         if len(self) == 0:
             raise Exception("Cannot dump empty metadata")
         if isinstance(fp, str):
-            if fmt == "csv": fp = open(path, "r", newline="")
-            else: fp = open(path, "r")
+            if fmt == "csv": fp = open(fp, "w", newline="")
+            else: fp = open(fp, "w")
         if fmt == "csv":
-            with fp:
-                writer = DictWriter(fp, fieldnames=COLUMNS)
-                writer.writeheader()
-                for metadatum in self.raw_metadata:
-                    writer.writerow(metadatum)
+            writer = DictWriter(fp, fieldnames=COLUMNS)
+            writer.writeheader()
+            for metadatum in self.raw_metadata:
+                writer.writerow(metadatum)
         elif fmt == "json":
-            with fp: dump_json(self.raw_metadata, fp)
+            dump_json(self.raw_metadata, fp)
         elif fmt == "html":
             td = '<td><input type="text" for="{}" value="{}"></td>'
             table = (
@@ -304,9 +305,11 @@ class Metadata:
                     + row
                     + '</tr>'
                 )
-            with fp: fp.write(HTML_TABLE_RE.sub(html))
+            fp.write(HTML_TABLE_RE.sub(html))
         else:
             raise Exception("unsupported dump format")
+        if not close_fp: return fp
+        fp.close()
 
     def load(self, fp, fmt="csv"):
         """Load formatted metadata from file pointer"""
@@ -329,6 +332,22 @@ class Metadata:
                 self.raw_metadata = self.html_parser.feed(fp.read())
         else:
             raise Exception("unsupported load format")
+
+    def push(self):
+        """Alias for `Project.connector.metadata("import", ...)`"""
+        if hasattr(self, "project"):
+            try:
+                LOGGER.info("pushing project metadata")
+                resp = self.project.connector.metadata(
+                    "import", self.dump(TextIOBase(), close_fp=False)
+                )
+            except Exception as e:
+                LOGGER.exception("push raised exception: exc=%s", e)
+                raise
+            else:
+                LOGGER.info("pushed project metadata")
+        else:
+            raise Exception("Cannot push metadata changes")
 
     def sql_migration(self, path, schema="", table_groups="field_type"):
         """Write a SQL migration file from metadata"""

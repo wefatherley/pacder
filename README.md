@@ -72,10 +72,12 @@ with Project(host, path, token) as proj:
         ):
             print("{} signed up too early!!".format(record["name"].value))
 
-    # update project by adding a new/replacement field
+    # alter project by adding a new field
     proj.metadata["vaccine_manufacturer"] = {"field_type": "radio", ...}
-    # hide an existing/replaced field
+    # hide a replaced field
     proj.metadata["vaccine"]["field_annotation"] = "@HIDDEN"
+    # push metadata changes to the REDCap instance
+    proj.metadata.push()
 
     # create a SQL migration from project metadata for auxiliary relational datastore
     proj.sql_migration("/migrations/myproject.sql")

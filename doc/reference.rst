@@ -1,7 +1,12 @@
 Reference
 =========
 
-Here the package modules are described.
+Here the package objects are described.
+
+Project object
+--------------
+
+At the top level of this package is the :class:`Project` object, which provides the broadest access to the REDCap API.
 
 :mod:`connector` - Connector objects
 ------------------------------------
