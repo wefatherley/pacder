@@ -36,16 +36,17 @@ class Record:
         if isinstance(data, RecordDatum):
             return data
         ofn = self.metadata[key]["field_name"]
-        valid = (
-            self.metadata[key]["text_validation_min"](data)
-            and self.metadata[key]["text_validation_max"](data)
-        )
         if self.metadata[key]["field_type"] == "checkbox":
-            if "___" in key:
-                pass
-            else:
-                pass
+            checkboxes = {
+                k.split("___")[-1]: True if v else False
+                for k,v in self.items.items()
+                if k.startswith(ofn + "___")
+            }
         else:
+            valid = (
+                self.metadata[key]["text_validation_min"](data)
+                and self.metadata[key]["text_validation_max"](data)
+            )
             value = data_type_map[
                 self.metadata[key][TVTOSSN]
             ][0](data)
@@ -61,7 +62,6 @@ class Record:
                 values=values
             )
             self.items[key] = record_datum
-            return record_datum
         for k,vals in checkboxes.items():
             bl = self.metadata[k]["branching_logic"](record)
             atleastone = any(vals.values())
@@ -74,6 +74,7 @@ class Record:
                 value=atleastone,
                 values={k: bool(v) for k,v in vals.items()}
             )
+        return record_datum
 
     def __init__(self, raw_record, **kwargs):
         """Construct record"""
