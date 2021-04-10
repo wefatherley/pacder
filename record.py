@@ -89,3 +89,4 @@ class Record:
         """Set record item"""
         if key not in self.metadata.raw_field_names:
             raise Exception("Field not in project metadata")
+        self.items[key] = value
