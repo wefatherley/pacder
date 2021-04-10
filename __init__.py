@@ -4,7 +4,7 @@ from logging import getLogger
 
 from .connector import Connector
 from .metadata import Metadata
-from .record import record_factory
+from .record import Record
 
 
 LOGGER = getLogger(__name__)

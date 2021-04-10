@@ -63,8 +63,8 @@ class TestBaseConnector(WebTestCase):
         bconn = BaseConnector
         bconn.method = "POST"
         bconn.pathstack.append("/testpost")
-        with bconn("127.0.0.1") as tconn:
-            resp_bytes = tconn.post(data="hello wrold!!")
+        with bconn("127.0.0.1") as conn:
+            resp_bytes = conn.post(data="hello wrold!!")
             self.assertEqual(resp_bytes, b"oh stop it you")
 
     def test_redirect(self):

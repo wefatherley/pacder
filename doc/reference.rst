@@ -3,11 +3,6 @@ Reference
 
 Here the package objects are described.
 
-Project object
---------------
-
-At the top level of this package is the :class:`Project` object, which provides the broadest access to the REDCap API.
-
 :mod:`connector` - Connector objects
 ------------------------------------
 
@@ -108,3 +103,11 @@ A project's metadata (a.k.a. data dictionary) is the defining feature of the pro
 -----------------------------
 
 The module defines data structures used by other modules in the package.
+
+
+Project object
+--------------
+
+.. class:: Project
+
+   This object provides the broadest access to the REDCap API.

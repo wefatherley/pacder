@@ -4,14 +4,14 @@ with open("README.md", "r", encoding="utf-8") as fp:
     long_description = fp.read()
 
 setuptools.setup(
-    name="redcapp",
+    name="pacder",
     version="1.0.0",
     author="Will Fatherley",
     author_email="wefatherley@gmail.com",
     description="Exposes the REDCap API",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/wefatherley/redcapp",
+    url="https://github.com/wefatherley/pacder",
     project_urls={},
     classifiers=[
         "Programming Language :: Python :: 3",

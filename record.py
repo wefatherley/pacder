@@ -74,6 +74,7 @@ class Record(dict):
                 value=value,
                 values=v
             )
+        LOGGER.info("Loaded record")
 
     def __setitem__(self, key, value):
         """Set record item"""

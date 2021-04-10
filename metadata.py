@@ -50,6 +50,7 @@ class HTMLParser(HTMLParser):
 
 
 class SQL:
+    """SQL statements for rendering migration files"""
     create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
     create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
     add_column = "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {};\n"
