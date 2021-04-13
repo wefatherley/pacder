@@ -1,8 +1,8 @@
 """pacder tests"""
-from http import server, HTTPStatus
+from http import client, server, HTTPStatus
 from threading import Thread
 from unittest import (
-    mock, TestCase, TestLoader, TestRunner, TestSuite, TestResult
+    defaultTestLoader, TestCase, TestRunner, TestSuite
 )
 from urllib.parse import parse_qs, urlparse
 
@@ -12,27 +12,37 @@ from .. import *
 RESPONSE_DATA = {
     "testpost": b"oh stop it you",
     "records": b'[{"patient_id": "p001"}]',
+    "metadata":  b"""
+        field_name,form_name,section_header,field_type,field_label,select_choices_or_calculations,field_note,text_validation_type_or_show_slider_number,text_validation_min,text_validation_max,identifier,branching_logic,required_field,custom_alignment,question_number,matrix_group_name,matrix_ranking,field_annotation
+        patient_id,demographics,,text,"Patient ID",,"Scan the bottom QR code",,,,,,,,,,,@BARCODE-APP
+    """.strip()
 }
-
-TEST_METADATA = """
-field_name,form_name,section_header,field_type,field_label,select_choices_or_calculations,field_note,text_validation_type_or_show_slider_number,text_validation_min,text_validation_max,identifier,branching_logic,required_field,custom_alignment,question_number,matrix_group_name,matrix_ranking,field_annotation
-patient_id,demographics,,text,"Patient ID",,"Scan the bottom QR code",,,,,,,,,,,@BARCODE-APP
-""".strip()
-
-
 
 
 class MockAPIHandler(server.BaseHTTPRequestHandler):
-    """Service subclass for tests"""
+    """Handler subclass for tests"""
 
     def do_POST(self):
         """Handle POST requests"""
         url = parse.urlparse(self.path)
         query = parse_qs(url.query)
-        if self.path == "/testpost":
+
+        # resources for testing pacder.connector.BaseConnector
+        if url.path == "/test-base-connector":
+            self.send_response(HTTPStatus.FOUND)
+            self.writeheader("Location", "/redirected")
+            self.end_headers()
+        elif url.path == "/redirected":
             self.send_response(HTTPStatus.OK)
             self.end_headers()
             self.wfile.write(RESPONSE_DATA["testpost"])
+        
+        # WIP resources for testing pacder.connector.BaseConnector
+        elif url.path == "/redcap/api/":
+            self.send_response(HTTPStatus.OK)
+            self.end_headers()
+            
+        # any other resource for testing both connectors
         else:
             self.send_error(HTTPStatus.NOT_FOUND)
 
@@ -57,19 +67,34 @@ class WebTestCase(TestCase):
 
 class TestBaseConnector(WebTestCase):
     """Test BaseConnector object"""
-    
-    def test_post(self):
-        """Test below app-layer"""
-        bconn = BaseConnector
-        bconn.method = "POST"
-        bconn.pathstack.append("/testpost")
-        with bconn("127.0.0.1") as conn:
-            resp_bytes = conn.post(data="hello wrold!!")
-            self.assertEqual(resp_bytes, b"oh stop it you")
 
-    def test_redirect(self):
-        with Connector("127.0.0.1", "/testredirect", "foo"):
-            pass
+    def setUp(self):
+        """Set up non-TLS base connector instance"""
+        self.base_conn = client.HTTPConnection
+        self.base_conn.__enter__ = BaseConnector.__enter__
+        self.base_conn.__exit__ = BaseConnector.__exit__
+        self.base_conn.post = BaseConnector.post
+        self.base_conn.method = "POST"
+
+    def tearDown(self):
+        """Set up base connector instance"""
+        if self.base_conn.sock:
+            self.base_conn.close()
+
+    def test_found(self):
+        """Test redirection"""
+        self.base_conn.path_stack.append("/test-base-connector")
+        resp_bytes = self.base_conn.post(data="hello wrold!!")
+        self.assertEqual(resp_bytes, RESPONSE_DATA["testpost"])
+
+    def test_enter_exit(self):
+        """Test context management"""
+        self.base_conn.path_stack.append("/")
+        self.base_conn.close()
+        with self.base_conn as conn:
+            resp = conn.post()
+        self.assertEqual(HTTPStatus.NOT_FOUND, resp.status)
+        self.assertIsNone(self.base_conn.sock)
 
 
 class TestConnector(WebTestCase):
@@ -92,5 +117,7 @@ class PacderTestSuite(TestSuite):
     pass
 
 
-
-test_runner, test_suite = None, None
+test_suite = defaultTestLoader.loadTestsFromNames(
+    [t for t in dir() if t.startswith("Test")]
+)
+test_runner = TextTestRunner()

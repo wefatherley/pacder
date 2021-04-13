@@ -7,9 +7,6 @@ from .util import data_type_map
 LOGGER = getLogger(__name__)
 
 
-TVTOSSN = "text_validation_type_or_show_slider_number"
-
-
 RecordDatum = namedtuple(
     "RecordDatum",
     [
@@ -48,7 +45,7 @@ class Record:
                 and self.metadata[key]["text_validation_max"](data)
             )
             value = data_type_map[
-                self.metadata[key][TVTOSSN]
+                self.metadata[key][self.metadata.columns[7]]
             ][0](data)
             values = [data]
             record_datum = RecordDatum(

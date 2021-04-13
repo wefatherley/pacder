@@ -7,13 +7,7 @@ Exposes REDCap's API through the Python programming langauge, allowing token hol
 CONTRIBUTING: Please contribute, this package is still in it's infancy.
 
 ## Install
-Built on top of the Python standard library, and available for __Python 3.6+__. Install the latest stable release with `pip`:
-
-`python3 -m pip install pacder`,
-
-or with `conda`:
-
-`conda install -c pacder`.
+Built on top of the Python standard library, and available for __Python 3.6+__. Currently not part of any package indicies, but feel free to clone and help develop :)
 
 ## Usage
 ### Programmatic usage

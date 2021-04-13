@@ -9,14 +9,15 @@ LOGGER = getLogger(__name__)
 
 PARAMETERS = []
 
+DELETE_HEADERS = {}
+EXPORT_HEADERS = {}
+IMPORT_HEADERS = {}
+
 
 class BaseConnector(client.HTTPSConnection):
     """HTTP methods container"""
 
     path_stack = []
-    delete_headers = {}
-    export_headers = {}
-    import_headers = {}
 
     def __enter__(self):
         """Enter context"""
@@ -36,7 +37,6 @@ class BaseConnector(client.HTTPSConnection):
             )
             if isinstance(data, IOBase):
                 data = bytes(data.read(), "latin-1")
-            else:
             for k,v in self.effective_headers.items():
                 self.putheader(k,v)
             if data is not None:
@@ -54,6 +54,9 @@ class BaseConnector(client.HTTPSConnection):
                     raise
         else:
             response = self.getresponse()
+            response.headers = {
+                k.lower(): v for k,v in response.getheaders()
+            }
             if (
                 HTTPStatus.OK
                 <= response.status <
@@ -72,13 +75,12 @@ class BaseConnector(client.HTTPSConnection):
                 resp_data = response.read().decode("latin-1")
                 LOGGER.info(
                     "following redirect: link=%s, resp_data=%s",
-                    response.headers.get("link"),
+                    response.headers.get("location"),
                     resp_data
                 )
-                redirect_path = self.parse_link_header(
-                    response.headers.get("link")
+                self.path_stack.append(
+                    response.headers.get("location")
                 )
-                self.path_stack.append(redirect_path)
                 self.post(data=data)
             elif response.status >= HTTPStatus.BAD_REQUEST:
                 # 400s and 500s compacted into one elif for now
@@ -93,16 +95,12 @@ class BaseConnector(client.HTTPSConnection):
     def set_effective_headers(self, action):
         """Set the request, or "effective" headers"""
         if action == "delete":
-            self.effective_headers = self.delete_headers
+            self.effective_headers = DELETE_HEADERS
         elif action == "export":
-            self.effective_headers = self.export_headers
+            self.effective_headers = EXPORT_HEADERS
         elif action == "import":
-            self.effective_headers = self.import_headers
+            self.effective_headers = IMPORT_HEADERS
             
-    def parse_link_header(self, header):
-        """Returns URLs from link header"""
-        raise NotImplementedError
-
 
 class Connector(BaseConnector):
     """WIP REDCap methods container"""
