@@ -2,11 +2,9 @@
 from http import client, server, HTTPStatus
 from threading import Thread
 from unittest import (
-    defaultTestLoader, TestCase, TestRunner, TestSuite
+    defaultTestLoader, mock, TestCase, TestRunner, TestSuite
 )
 from urllib.parse import parse_qs, urlparse
-
-from .. import *
 
 
 RESPONSE_DATA = {
@@ -68,18 +66,22 @@ class WebTestCase(TestCase):
 class TestBaseConnector(WebTestCase):
     """Test BaseConnector object"""
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
         """Set up non-TLS base connector instance"""
-        self.base_conn = client.HTTPConnection
-        self.base_conn.__enter__ = BaseConnector.__enter__
-        self.base_conn.__exit__ = BaseConnector.__exit__
-        self.base_conn.post = BaseConnector.post
-        self.base_conn.method = "POST"
+        super().setUpClass()
+        cls.base_conn = client.HTTPConnection
+        cls.base_conn.__enter__ = BaseConnector.__enter__
+        cls.base_conn.__exit__ = BaseConnector.__exit__
+        cls.base_conn.post = BaseConnector.post
+        cls.base_conn.method = "POST"
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         """Set up base connector instance"""
-        if self.base_conn.sock:
-            self.base_conn.close()
+        super().tearDownClass()
+        if cls.base_conn.sock:
+            cls.base_conn.close()
 
     def test_found(self):
         """Test redirection"""
@@ -99,7 +101,22 @@ class TestBaseConnector(WebTestCase):
 
 class TestConnector(WebTestCase):
     """Test Connector object"""
-    pass
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up non-TLS base connector instance"""
+        super().setUpClass()
+        base_conn = client.HTTPConnection
+        base_conn.__enter__ = BaseConnector.__enter__
+        base_conn.__exit__ = BaseConnector.__exit__
+        base_conn.post = BaseConnector.post        
+
+    @classmethod
+    def tearDownClass(cls):
+        """Set up base connector instance"""
+        super().tearDownClass()
+        if cls.base_conn.sock:
+            cls.base_conn.close()
 
 
 class TestMetadata(TestCase):
