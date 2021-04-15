@@ -1,4 +1,5 @@
 """Record and related objects"""
+from collections import namedtuple
 from logging import getLogger
 
 from .util import data_type_map

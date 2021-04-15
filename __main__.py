@@ -1,10 +1,11 @@
-"""pacder tests"""
 from http import client, server, HTTPStatus
 from threading import Thread
 from unittest import (
-    defaultTestLoader, mock, TestCase, TestRunner, TestSuite
+    defaultTestLoader, mock, TestCase, TextTestRunner
 )
 from urllib.parse import parse_qs, urlparse
+
+from . import BaseConnector
 
 
 RESPONSE_DATA = {
@@ -65,58 +66,12 @@ class WebTestCase(TestCase):
 
 class TestBaseConnector(WebTestCase):
     """Test BaseConnector object"""
-
-    @classmethod
-    def setUpClass(cls):
-        """Set up non-TLS base connector instance"""
-        super().setUpClass()
-        cls.base_conn = client.HTTPConnection
-        cls.base_conn.__enter__ = BaseConnector.__enter__
-        cls.base_conn.__exit__ = BaseConnector.__exit__
-        cls.base_conn.post = BaseConnector.post
-        cls.base_conn.method = "POST"
-
-    @classmethod
-    def tearDownClass(cls):
-        """Set up base connector instance"""
-        super().tearDownClass()
-        if cls.base_conn.sock:
-            cls.base_conn.close()
-
-    def test_found(self):
-        """Test redirection"""
-        self.base_conn.path_stack.append("/test-base-connector")
-        resp_bytes = self.base_conn.post(data="hello wrold!!")
-        self.assertEqual(resp_bytes, RESPONSE_DATA["testpost"])
-
-    def test_enter_exit(self):
-        """Test context management"""
-        self.base_conn.path_stack.append("/")
-        self.base_conn.close()
-        with self.base_conn as conn:
-            resp = conn.post()
-        self.assertEqual(HTTPStatus.NOT_FOUND, resp.status)
-        self.assertIsNone(self.base_conn.sock)
+    pass
 
 
 class TestConnector(WebTestCase):
     """Test Connector object"""
-
-    @classmethod
-    def setUpClass(cls):
-        """Set up non-TLS base connector instance"""
-        super().setUpClass()
-        base_conn = client.HTTPConnection
-        base_conn.__enter__ = BaseConnector.__enter__
-        base_conn.__exit__ = BaseConnector.__exit__
-        base_conn.post = BaseConnector.post        
-
-    @classmethod
-    def tearDownClass(cls):
-        """Set up base connector instance"""
-        super().tearDownClass()
-        if cls.base_conn.sock:
-            cls.base_conn.close()
+    pass
 
 
 class TestMetadata(TestCase):
@@ -129,12 +84,6 @@ class TestProject(WebTestCase):
     pass
 
 
-class PacderTestSuite(TestSuite):
-    """Gather and house test cases"""
-    pass
-
-
-test_suite = defaultTestLoader.loadTestsFromNames(
-    [t for t in dir() if t.startswith("Test")]
-)
-test_runner = TextTestRunner()
+# test_suite = defaultTestLoader.loadTestsFromTestCase(TestBaseConnector)
+# test_runner = TextTestRunner()
+# test_runner.run(test_suite)
