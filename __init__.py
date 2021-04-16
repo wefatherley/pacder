@@ -2,7 +2,7 @@
 from json import loads
 from logging import getLogger
 
-from .connector import Connector
+from .connector import *
 from .metadata import Metadata
 from .record import Record
 

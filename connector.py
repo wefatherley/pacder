@@ -250,4 +250,4 @@ class Connector(BaseConnector):
         )
 
 
-__all__ = ["Connector",]
+__all__ = ["BaseConnector", "Connector",]
