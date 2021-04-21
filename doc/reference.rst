@@ -8,49 +8,33 @@ Here the package objects are described.
 
 To interact with the API of a REDCap instance, it is necessary to utilize a "web client" that can perform network I/O and HTTP parsing. This module defines classes that perform such I/O and parsing.
 
-.. class:: BaseConnector
+.. class:: BaseConnector(http.client.HTTPSConnection)
 
    This class performs the logic related to network I/O and HTTP parsing. It is designed to be subclassed/inhereted, but can be instantiated with it's parent constructor for purposes unrelated to normal usage of this package. Ordinarily, it is not instantiated directly by a user. It has the following members:
 
-
-   .. method:: BaseConnector.__enter__()
-
-      Satifies the context-manager protocol. Prior to returning the instance, this method will attempt to open the instance's socket if closed.
-
-
-   .. method:: BaseConnector.__exit__(typ, val, trb)
-
-      Satisfies the context-manager protocol. Prior to exiting the conext, this method will close the instance's socket.
-
-
    .. method:: BaseConnector.post(data=None)
 
-      Performs the HTTP request. If the action is to ``import`` content, ``data`` should be a file-like object. For ``delete`` and ``export`` actions, data is left as default in subclasses.
+      Performs the HTTP request. If the action is to ``import`` content, ``data`` should be a file-like object, a ``str`` object representing the path to a file, or a ``bytes`` object representing the data. For ``delete`` and ``export`` actions, data is left as default in subclasses.
 
 
    .. method:: BaseConnector.set_effective_headers(action)
 
-      Called by ``BaseConnector.post`` to set request headers based on the effective action.
+      Called by ``BaseConnector.post`` to set request headers based on the effective action. This method is used internally, but can be overridden for other purposes.
 
 
-   .. method:: BaseConnector.parse_link_header(header)
-
-      Called on redirect response by ``BaseConnector.post`` to extract and set effective the link URL. Currently not implemented.
-
-
-.. class:: Connector(host, path, token)
+.. class:: Connector(BaseConnector)
 
    This class is the "public" interface for a REDCap instance. It inherets all the members of it's parents. It expects string arguments ``host``, ``path``, and ``token``, which are along the lines of ``redcap.myorg.net``, ``/path/to/api/dir``, and ``jgHA12K3dgkKLQ95548...``, respectively. Members include:
 
    .. method:: __init__(host, path, token)
 
-      Constructs the instance by setting various attributes, and calling it's parent's parent. When using this object without the context manager protocol (i.e. like ``conn = Connector(...)``), be sure to close it afterward (i.e. ``conn.close()``).
+      Constructs the instance. When using this object without the context manager protocol (i.e. like ``conn = Connector(...)``), be sure to close it afterward (i.e. ``conn.close()``).
 
-   .. method:: delete_content(**parameters)
-   .. method:: export_content(**parameters)
-   .. method:: import_content(data, **parameters)
+   .. method:: delete_content(content, **parameters)
+   .. method:: export_content(content, **parameters)
+   .. method:: import_content(content, data, **parameters)
 
-      These methods expose the three "actions" that can be performed against the REDCap API. They do not verify if the user has supplied the correct parameters, be sure to have error messages returned from the API in the desired format. All three members return response data as ``latin-1`` bytes. Usage is like::
+      These methods expose the core "actions" that can be performed against the REDCap API. They do not verify if the user has supplied the correct parameters, be sure to have error messages returned from the API in the desired format. All three members return response data as ``latin-1`` bytes. Usage is like::
 
          import json
 
@@ -58,16 +42,17 @@ To interact with the API of a REDCap instance, it is necessary to utilize a "web
          with Connector(myhost, mypath, mytoken) as conn:
             
             # ignoring the response bytes
-            conn.delete(content="record", filterLogic="[age] > 35")
+            conn.delete_content("record", filterLogic="[age] > 35")
 
-            # fetch and load up the project metadata
-            metadata = json.loads(conn.export(content="metadata").decode("latin-1"))
+            # fetch and load project metadata
+            metadata = conn.export_content("metadata").decode("latin-1")
+            metadata = json.loads(metadata)
 
             # upload a picture (again ignoring response bytes)
             with open("bork.png", "rb") as fp:
                conn.import_content(data=fp, content="files")
 
-      As mentioned in the snippet comments, it's always ok to call one of these members without assignment, but this choice is at the expense of understanding any return information. For instance, in importing records, the response does contain useful information related to the success and failure of the import.
+      As mentioned in the snippet comments, it's always ok to call Connector methods without assigning the result to a variable, but this choice is at the expense of understanding any return information. For instance, in importing records, the response does contain useful information related to the success and failure of the import.
 
 
    .. method:: arms(action, data=None, **parameters)

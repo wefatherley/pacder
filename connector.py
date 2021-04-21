@@ -2,6 +2,7 @@
 from http import client, HTTPStatus
 from io import IOBase
 from logging import getLogger
+from urllib.parse import urlencode
 
 
 LOGGER = getLogger(__name__)
@@ -37,6 +38,10 @@ class BaseConnector(client.HTTPSConnection):
             )
             if isinstance(data, IOBase):
                 data = bytes(data.read(), "latin-1")
+            elif isinstance(data, str):
+                data = open(data, "rb").read()
+            elif data is not None and not isinstance(data, bytes):
+                raise Exception("Can't POST data")
             for k,v in self.effective_headers.items():
                 self.putheader(k,v)
             if data is not None:
@@ -105,25 +110,36 @@ class BaseConnector(client.HTTPSConnection):
 class Connector(BaseConnector):
     """WIP REDCap methods container"""
 
+    delete_params = {}
+    export_params = {}
+    import_params = {}
+
     def __init__(self, host, path, token):
         """Construct API wrapper"""
         if path is None or token is None:
             raise RuntimeError("path and/or token required")
-        self.base_path = path
-        self.params = "token={}".format(token)
+        self.path_stack.append(path)
         self.method = "POST"
         super().__init__(host)
+        self.delete_params["token"] = token
+        self.export_params["token"] = token
+        self.import_params["token"] = token
 
-    def delete_content(self, **parameters):
-        """Delete content"""
-        if data in parameters:
-            LOGGER.warn("Cannot pass in data on Delete")
-            del parameters[data]
-        params = self.params
+    def build_params(self, action, content, **parameters):
+        """Build urlencoded query"""
+        if "data" in parameters:
+            raise Exception("Cannot pass data in parameters")
+        params = getattr(self, "{}_params".format(action))
+        params["content"] = content
         for key, value in parameters.items():
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
-            params += "&{}={}".format(key, value)
+            params[key] = value
+        return params
+
+    def delete_content(self, content, **parameters):
+        """Delete content"""
+        params = build_params("delete", content, **parameters)
         self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("delete")
         resp = self.post()
@@ -134,38 +150,27 @@ class Connector(BaseConnector):
         )
         return resp.read()
         
-    def export_content(self, **parameters):
+    def export_content(self, content, **parameters):
         """Export content"""
-        if data in parameters:
-            LOGGER.warn("Cannot pass in data on Export")
-            del parameters[data]
-        params = self.params
-        for key, value in parameters.items():
-            if key not in PARAMETERS:
-                raise Exception("bad API parameter")
-            params += "&{}={}".format(key, value)
+        params = build_params("export", content, **parameters)
         self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("export")
         resp = self.post()
         LOGGER.info(
-            "delete resource: status=%i, content=%s",
+            "export resource: status=%i, content=%s",
             resp_status,
             parameters["content"]
         )
         return resp.read()
 
-    def import_content(self, fp, **parameters):
+    def import_content(self, data, **parameters):
         """Import content"""
-        params = self.params
-        for key, value in parameters.items():
-            if key not in PARAMETERS:
-                raise Exception("bad API parameter")
-            params += "&{}={}".format(key, value)
+        params = build_params("import", content, **parameters)
         self.path_stack.append(self.base_path + "?" + params)
         self.set_effective_headers("import")
-        resp = self.post(fp)
+        resp = self.post(data)
         LOGGER.info(
-            "delete resource: status=%i, content=%s",
+            "import resource: status=%i, content=%s",
             resp_status,
             parameters["content"]
         )
@@ -250,4 +255,4 @@ class Connector(BaseConnector):
         )
 
 
-__all__ = ["BaseConnector", "Connector",]
+__all__ = ["Connector",]
