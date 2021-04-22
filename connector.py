@@ -8,17 +8,28 @@ from urllib.parse import urlencode
 LOGGER = getLogger(__name__)
 
 
-PARAMETERS = []
-
-DELETE_HEADERS = {}
-EXPORT_HEADERS = {}
-IMPORT_HEADERS = {}
+PARAMETERS = [
+    "action", "allRecords", "arm", "arms", "compactDisplay",
+    "content", "csvDelimiter", "data", "dateFormat",
+    "dateRangeBegin", "dateRangeEnd", "decimalCharacter", "event",
+    "events", "exportCheckboxLabel", "exportDataAccessGroups",
+    "exportFiles", "exportSurveyFields", "field", "fields", "file",
+    "filterLogic", "forceAutoNumber", "format", "forms",
+    "instrument", "override", "overwriteBehavior", "rawOrLabel",
+    "rawOrLabelHeaders", "record", "records", "repeat_instance",
+    "report_id", "returnContent", "returnFormat",
+    "returnMetadataOnly", "token", "type",
+]
 
 
 class BaseConnector(client.HTTPSConnection):
     """HTTP methods container"""
 
     path_stack = []
+    static_headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
 
     def __enter__(self):
         """Enter context"""
@@ -30,22 +41,15 @@ class BaseConnector(client.HTTPSConnection):
         """Exit context"""
         self.close()
     
-    def post(self, data=None):
+    def post(self, data):
         """Handle HTTP POST procedure"""
         try:
             self.putrequest(
-                method=self.method, url=self.path_stack[-1]
+                method="POST", url=self.path_stack[-1]
             )
-            if isinstance(data, IOBase):
-                data = bytes(data.read(), "latin-1")
-            elif isinstance(data, str):
-                data = open(data, "rb").read()
-            elif data is not None and not isinstance(data, bytes):
-                raise Exception("Can't POST data")
-            for k,v in self.effective_headers.items():
+            for k,v in self.static_headers.items():
                 self.putheader(k,v)
-            if data is not None:
-                self.putheader("content-length", len(data))
+            self.putheader("content-length", len(data))
             self.endheaders(message_body=data)
         except Exception as e:
             LOGGER.exception("request threw exception: exc=%s", e)
@@ -96,162 +100,148 @@ class BaseConnector(client.HTTPSConnection):
                     response.status, response.reason
                 )
                 return response
-
-    def set_effective_headers(self, action):
-        """Set the request, or "effective" headers"""
-        if action == "delete":
-            self.effective_headers = DELETE_HEADERS
-        elif action == "export":
-            self.effective_headers = EXPORT_HEADERS
-        elif action == "import":
-            self.effective_headers = IMPORT_HEADERS
             
 
 class Connector(BaseConnector):
     """WIP REDCap methods container"""
 
-    delete_params = {}
-    export_params = {}
-    import_params = {}
-
-    def __init__(self, host, path, token):
-        """Construct API wrapper"""
+    def __init__(self, host, path, token, **kwargs):
+        """Construct interface"""
+        super().__init__(host)
         if path is None or token is None:
             raise RuntimeError("path and/or token required")
         self.path_stack.append(path)
-        self.method = "POST"
-        super().__init__(host)
-        self.delete_params["token"] = token
-        self.export_params["token"] = token
-        self.import_params["token"] = token
+        self.default_params = {
+            "token": token, "format": kwargs.pop("format", "json")
+        }
+        for k,v in kwargs.items():
+            if k in PARAMETERS:
+                self.default_params[k] = v
 
-    def build_params(self, action, content, **parameters):
+    def url_encode(self, action, content, **parameters):
         """Build urlencoded query"""
-        if "data" in parameters:
-            raise Exception("Cannot pass data in parameters")
-        params = getattr(self, "{}_params".format(action))
+        if action == "import" and "data" not in parameters:
+            raise Exception("Can't import without data")
+        if action != "import" and "data" in parameters:
+            raise Exception("Can't export/delete with data")
+        params = self.default_params
+        params["action"] = action
         params["content"] = content
         for key, value in parameters.items():
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
             params[key] = value
-        return params
+        return urlencode(params).encode("latin-1")
 
     def delete_content(self, content, **parameters):
         """Delete content"""
-        params = build_params("delete", content, **parameters)
-        self.path_stack.append(self.base_path + "?" + params)
-        self.set_effective_headers("delete")
-        resp = self.post()
+        data = self.url_encode("delete", content, **parameters)
+        resp = self.post(data)
         LOGGER.info(
             "delete resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
+            resp.status,
+            content
         )
         return resp.read()
         
     def export_content(self, content, **parameters):
         """Export content"""
-        params = build_params("export", content, **parameters)
-        self.path_stack.append(self.base_path + "?" + params)
-        self.set_effective_headers("export")
-        resp = self.post()
+        data = self.url_encode("export", content, **parameters)
+        resp = self.post(data)
         LOGGER.info(
             "export resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
+            resp.status,
+            content
         )
         return resp.read()
 
-    def import_content(self, data, **parameters):
+    def import_content(self, content, data, **parameters):
         """Import content"""
-        params = build_params("import", content, **parameters)
-        self.path_stack.append(self.base_path + "?" + params)
-        self.set_effective_headers("import")
+        data = self.url_encode("import", content, **parameters)
         resp = self.post(data)
         LOGGER.info(
             "import resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
+            resp.status,
+            content
         )
         return resp.read()
         
-    def arms(self, action, data=None, **parameters):
+    def arms(self, action, **parameters):
         """Modify arms"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="arms", **parameters
+            content="arms", **parameters
         )
 
-    def events(self, action, data=None, **parameters):
+    def events(self, action, **parameters):
         """Modify events"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="events", **parameters
+            content="events", **parameters
         )
 
-    def field_names(self, action, data=None, **parameters):
+    def field_names(self, action, **parameters):
         """Modify field_names"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="field_names", **parameters
+            content="field_names", **parameters
         )
 
-    def files(self, action, data=None, **parameters):
+    def files(self, action, **parameters):
         """Modify files"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="files", **parameters
+            content="files", **parameters
         )
 
-    def instruments(self, action, data=None, **parameters):
+    def instruments(self, action, **parameters):
         """Modify instruments"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="instruments", **parameters
+            content="instruments", **parameters
         )
 
-    def metadata(self, action, data=None, **parameters):
+    def metadata(self, action, **parameters):
         """Modify metadata"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="metadata", **parameters
+            content="metadata", **parameters
         )
 
-    def projects(self, action, data=None, **parameters):
+    def projects(self, action, **parameters):
         """Modify projects"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="projects", **parameters
+            content="projects", **parameters
         )
 
-    def records(self, action, data=None, **parameters):
+    def records(self, action, **parameters):
         """Modify records"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="records", **parameters
+            content="records", **parameters
         )
         
-    def repeating_ie(self, action, data=None, **parameters):
+    def repeating_ie(self, action, **parameters):
         """Modify repeating_ie"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="repeating_ie", **parameters
+            content="repeating_ie", **parameters
         )
 
-    def reports(self, action, data=None, **parameters):
+    def reports(self, action, **parameters):
         """Modify reports"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="reports", **parameters
+            content="reports", **parameters
         )
 
-    def redcap(self, action, data=None, **parameters):
+    def redcap(self, action, **parameters):
         """Modify redcap"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="redcap", **parameters
+            content="redcap", **parameters
         )
 
-    def surveys(self, action, data=None, **parameters):
+    def surveys(self, action, **parameters):
         """Modify surveys"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="surveys", **parameters
+            content="surveys", **parameters
         )
 
-    def users(self, action, data=None, **parameters):
+    def users(self, action, **parameters):
         """Modify users"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="users", **parameters
+            content="users", **parameters
         )
 
 
