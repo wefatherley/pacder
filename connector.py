@@ -1,4 +1,4 @@
-"""Connector objects """
+"""Connector objects"""
 from http import client, HTTPStatus
 from io import IOBase
 from logging import getLogger
@@ -41,7 +41,7 @@ class BaseConnector(client.HTTPSConnection):
         """Exit context"""
         self.close()
     
-    def post(self, data):
+    def post(self, body):
         """Handle HTTP POST procedure"""
         try:
             self.putrequest(
@@ -49,15 +49,15 @@ class BaseConnector(client.HTTPSConnection):
             )
             for k,v in self.static_headers.items():
                 self.putheader(k,v)
-            self.putheader("content-length", len(data))
-            self.endheaders(message_body=data)
+            self.putheader("content-length", len(body))
+            self.endheaders(message_body=body)
         except Exception as e:
             LOGGER.exception("request threw exception: exc=%s", e)
             if isinstance(e, client.NotConnected):
                 try:
                     LOGGER.info("trying to reconnect")
                     self.connect()
-                    self.post(data=data)
+                    self.post(body=body)
                 except client.NotConnected:
                     LOGGER.error("unable to connect")
                     raise
@@ -90,7 +90,7 @@ class BaseConnector(client.HTTPSConnection):
                 self.path_stack.append(
                     response.headers.get("location")
                 )
-                self.post(data=data)
+                self.post(body=body)
             elif response.status >= HTTPStatus.BAD_REQUEST:
                 # 400s and 500s compacted into one elif for now
                 # TODO: perform certain retries
@@ -111,32 +111,30 @@ class Connector(BaseConnector):
         if path is None or token is None:
             raise RuntimeError("path and/or token required")
         self.path_stack.append(path)
-        self.default_params = {
+        self._parameters = {
             "token": token, "format": kwargs.pop("format", "json")
         }
         for k,v in kwargs.items():
             if k in PARAMETERS:
-                self.default_params[k] = v
+                self._parameters[k] = v
 
-    def url_encode(self, action, content, **parameters):
-        """Build urlencoded query"""
-        if action == "import" and "data" not in parameters:
-            raise Exception("Can't import without data")
-        if action != "import" and "data" in parameters:
-            raise Exception("Can't export/delete with data")
-        params = self.default_params
-        params["action"] = action
-        params["content"] = content
+    def url_encode(self, **parameters):
+        """Return url-encoded body bytes"""
+        body = self._parameters
         for key, value in parameters.items():
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
-            params[key] = value
-        return urlencode(params).encode("latin-1")
+            body[key] = value
+        return urlencode(body).encode("latin-1")
 
     def delete_content(self, content, **parameters):
         """Delete content"""
-        data = self.url_encode("delete", content, **parameters)
-        resp = self.post(data)
+        if "data" in parameters:
+            raise Exception("Can't delete with data")
+        body = self.url_encode(
+            action="delete", content=content, **parameters
+        )
+        resp = self.post(body)
         LOGGER.info(
             "delete resource: status=%i, content=%s",
             resp.status,
@@ -146,8 +144,12 @@ class Connector(BaseConnector):
         
     def export_content(self, content, **parameters):
         """Export content"""
-        data = self.url_encode("export", content, **parameters)
-        resp = self.post(data)
+        if "data" in parameters:
+            raise Exception("Can't export with data")
+        body = self.url_encode(
+            action="export", content=content, **parameters
+        )
+        resp = self.post(body)
         LOGGER.info(
             "export resource: status=%i, content=%s",
             resp.status,
@@ -157,8 +159,11 @@ class Connector(BaseConnector):
 
     def import_content(self, content, data, **parameters):
         """Import content"""
-        data = self.url_encode("import", content, **parameters)
-        resp = self.post(data)
+        # TODO: Check if format param agrees w actual data
+        body = self.url_encode(
+            action="import", content=content, **parameters
+        )
+        resp = self.post(body)
         LOGGER.info(
             "import resource: status=%i, content=%s",
             resp.status,
@@ -169,31 +174,31 @@ class Connector(BaseConnector):
     def arms(self, action, **parameters):
         """Modify arms"""
         return getattr(self, "{}_content".format(action))(
-            content="arms", **parameters
+            content="arm", **parameters
         )
 
     def events(self, action, **parameters):
         """Modify events"""
         return getattr(self, "{}_content".format(action))(
-            content="events", **parameters
+            content="event", **parameters
         )
 
     def field_names(self, action, **parameters):
         """Modify field_names"""
         return getattr(self, "{}_content".format(action))(
-            content="field_names", **parameters
+            content="exportFieldNames", **parameters
         )
 
     def files(self, action, **parameters):
         """Modify files"""
         return getattr(self, "{}_content".format(action))(
-            content="files", **parameters
+            content="file", **parameters
         )
 
     def instruments(self, action, **parameters):
         """Modify instruments"""
         return getattr(self, "{}_content".format(action))(
-            content="instruments", **parameters
+            content="instrument", **parameters
         )
 
     def metadata(self, action, **parameters):

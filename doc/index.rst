@@ -57,7 +57,7 @@ To furnish external applications with more logic and tools for working on REDCap
    with Project(host, path, token) as proj:
 
       # export, inspect records Pythonically
-      for record in proj.records(filterLogic="[age] < 65"):
+      for record in proj.iter_records(filterLogic="[age] < 65"):
 
          # perform logical comparisons with Python typing
          if (

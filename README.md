@@ -57,7 +57,7 @@ from pacder import Project
 with Project(host, path, token) as proj:
 
     # handle and inspect records
-    for record in proj.records(filterLogic="[age] < 65"):
+    for record in proj.iter_records(filterLogic="[age] < 65"):
 
         # perform logical comparisons with Python typing
         if (

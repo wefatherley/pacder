@@ -29,10 +29,11 @@ class Project:
         self.connector = Connector(host, path, token)
         with self.connector as conn:
             self.metadata = Metadata(
-                conn.metadata("export"), conn.field_names("export")
+                loads(conn.metadata("export").decode("latin-1")),
+                loads(conn.field_names("export").decode("latin-1"))
             )
 
-    def iter_records(self, return_container=Record, **query):
+    def iter_records(self, return_container=RecordDep, **query):
         """Yield Record instances that match query"""
         with self.connector as conn:
             records = loads(
