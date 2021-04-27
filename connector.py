@@ -1,23 +1,35 @@
-"""Connector objects """
+"""Connector objects"""
 from http import client, HTTPStatus
 from io import IOBase
 from logging import getLogger
+from urllib.parse import urlencode
 
 
 LOGGER = getLogger(__name__)
 
 
-PARAMETERS = []
-
-DELETE_HEADERS = {}
-EXPORT_HEADERS = {}
-IMPORT_HEADERS = {}
+PARAMETERS = [
+    "action", "allRecords", "arm", "arms", "compactDisplay",
+    "content", "csvDelimiter", "data", "dateFormat",
+    "dateRangeBegin", "dateRangeEnd", "decimalCharacter", "event",
+    "events", "exportCheckboxLabel", "exportDataAccessGroups",
+    "exportFiles", "exportSurveyFields", "field", "fields", "file",
+    "filterLogic", "forceAutoNumber", "format", "forms",
+    "instrument", "override", "overwriteBehavior", "rawOrLabel",
+    "rawOrLabelHeaders", "record", "records", "repeat_instance",
+    "report_id", "returnContent", "returnFormat",
+    "returnMetadataOnly", "token", "type",
+]
 
 
 class BaseConnector(client.HTTPSConnection):
     """HTTP methods container"""
 
     path_stack = []
+    static_headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
 
     def __enter__(self):
         """Enter context"""
@@ -29,26 +41,23 @@ class BaseConnector(client.HTTPSConnection):
         """Exit context"""
         self.close()
     
-    def post(self, data=None):
+    def post(self, body):
         """Handle HTTP POST procedure"""
         try:
             self.putrequest(
-                method=self.method, url=self.path_stack[-1]
+                method="POST", url=self.path_stack[-1]
             )
-            if isinstance(data, IOBase):
-                data = bytes(data.read(), "latin-1")
-            for k,v in self.effective_headers.items():
+            for k,v in self.static_headers.items():
                 self.putheader(k,v)
-            if data is not None:
-                self.putheader("content-length", len(data))
-            self.endheaders(message_body=data)
+            self.putheader("content-length", len(body))
+            self.endheaders(message_body=body)
         except Exception as e:
             LOGGER.exception("request threw exception: exc=%s", e)
             if isinstance(e, client.NotConnected):
                 try:
                     LOGGER.info("trying to reconnect")
                     self.connect()
-                    self.post(data=data)
+                    self.post(body=body)
                 except client.NotConnected:
                     LOGGER.error("unable to connect")
                     raise
@@ -81,7 +90,7 @@ class BaseConnector(client.HTTPSConnection):
                 self.path_stack.append(
                     response.headers.get("location")
                 )
-                self.post(data=data)
+                self.post(body=body)
             elif response.status >= HTTPStatus.BAD_REQUEST:
                 # 400s and 500s compacted into one elif for now
                 # TODO: perform certain retries
@@ -91,163 +100,154 @@ class BaseConnector(client.HTTPSConnection):
                     response.status, response.reason
                 )
                 return response
-
-    def set_effective_headers(self, action):
-        """Set the request, or "effective" headers"""
-        if action == "delete":
-            self.effective_headers = DELETE_HEADERS
-        elif action == "export":
-            self.effective_headers = EXPORT_HEADERS
-        elif action == "import":
-            self.effective_headers = IMPORT_HEADERS
             
 
 class Connector(BaseConnector):
     """WIP REDCap methods container"""
 
-    def __init__(self, host, path, token):
-        """Construct API wrapper"""
+    def __init__(self, host, path, token, **kwargs):
+        """Construct interface"""
+        super().__init__(host)
         if path is None or token is None:
             raise RuntimeError("path and/or token required")
-        self.base_path = path
-        self.params = "token={}".format(token)
-        self.method = "POST"
-        super().__init__(host)
+        self.path_stack.append(path)
+        self._parameters = {
+            "token": token, "format": kwargs.pop("format", "json")
+        }
+        for k,v in kwargs.items():
+            if k in PARAMETERS:
+                self._parameters[k] = v
 
-    def delete_content(self, **parameters):
+    def url_encode(self, **parameters):
+        """Return url-encoded body bytes"""
+        body = self._parameters
+        for key, value in parameters.items():
+            if key not in PARAMETERS:
+                raise Exception("bad API parameter")
+            body[key] = value
+        return urlencode(body).encode("latin-1")
+
+    def delete_content(self, content, **parameters):
         """Delete content"""
-        if data in parameters:
-            LOGGER.warn("Cannot pass in data on Delete")
-            del parameters[data]
-        params = self.params
-        for key, value in parameters.items():
-            if key not in PARAMETERS:
-                raise Exception("bad API parameter")
-            params += "&{}={}".format(key, value)
-        self.path_stack.append(self.base_path + "?" + params)
-        self.set_effective_headers("delete")
-        resp = self.post()
+        if "data" in parameters:
+            raise Exception("Can't delete with data")
+        body = self.url_encode(
+            action="delete", content=content, **parameters
+        )
+        resp = self.post(body)
         LOGGER.info(
             "delete resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
+            resp.status,
+            content
         )
         return resp.read()
         
-    def export_content(self, **parameters):
+    def export_content(self, content, **parameters):
         """Export content"""
-        if data in parameters:
-            LOGGER.warn("Cannot pass in data on Export")
-            del parameters[data]
-        params = self.params
-        for key, value in parameters.items():
-            if key not in PARAMETERS:
-                raise Exception("bad API parameter")
-            params += "&{}={}".format(key, value)
-        self.path_stack.append(self.base_path + "?" + params)
-        self.set_effective_headers("export")
-        resp = self.post()
+        if "data" in parameters:
+            raise Exception("Can't export with data")
+        body = self.url_encode(
+            action="export", content=content, **parameters
+        )
+        resp = self.post(body)
         LOGGER.info(
-            "delete resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
+            "export resource: status=%i, content=%s",
+            resp.status,
+            content
         )
         return resp.read()
 
-    def import_content(self, fp, **parameters):
+    def import_content(self, content, data, **parameters):
         """Import content"""
-        params = self.params
-        for key, value in parameters.items():
-            if key not in PARAMETERS:
-                raise Exception("bad API parameter")
-            params += "&{}={}".format(key, value)
-        self.path_stack.append(self.base_path + "?" + params)
-        self.set_effective_headers("import")
-        resp = self.post(fp)
+        # TODO: Check if format param agrees w actual data
+        body = self.url_encode(
+            action="import", content=content, **parameters
+        )
+        resp = self.post(body)
         LOGGER.info(
-            "delete resource: status=%i, content=%s",
-            resp_status,
-            parameters["content"]
+            "import resource: status=%i, content=%s",
+            resp.status,
+            content
         )
         return resp.read()
         
-    def arms(self, action, data=None, **parameters):
+    def arms(self, action, **parameters):
         """Modify arms"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="arms", **parameters
+            content="arm", **parameters
         )
 
-    def events(self, action, data=None, **parameters):
+    def events(self, action, **parameters):
         """Modify events"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="events", **parameters
+            content="event", **parameters
         )
 
-    def field_names(self, action, data=None, **parameters):
+    def field_names(self, action, **parameters):
         """Modify field_names"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="field_names", **parameters
+            content="exportFieldNames", **parameters
         )
 
-    def files(self, action, data=None, **parameters):
+    def files(self, action, **parameters):
         """Modify files"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="files", **parameters
+            content="file", **parameters
         )
 
-    def instruments(self, action, data=None, **parameters):
+    def instruments(self, action, **parameters):
         """Modify instruments"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="instruments", **parameters
+            content="instrument", **parameters
         )
 
-    def metadata(self, action, data=None, **parameters):
+    def metadata(self, action, **parameters):
         """Modify metadata"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="metadata", **parameters
+            content="metadata", **parameters
         )
 
-    def projects(self, action, data=None, **parameters):
+    def projects(self, action, **parameters):
         """Modify projects"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="projects", **parameters
+            content="projects", **parameters
         )
 
-    def records(self, action, data=None, **parameters):
+    def records(self, action, **parameters):
         """Modify records"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="records", **parameters
+            content="records", **parameters
         )
         
-    def repeating_ie(self, action, data=None, **parameters):
+    def repeating_ie(self, action, **parameters):
         """Modify repeating_ie"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="repeating_ie", **parameters
+            content="repeating_ie", **parameters
         )
 
-    def reports(self, action, data=None, **parameters):
+    def reports(self, action, **parameters):
         """Modify reports"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="reports", **parameters
+            content="reports", **parameters
         )
 
-    def redcap(self, action, data=None, **parameters):
+    def redcap(self, action, **parameters):
         """Modify redcap"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="redcap", **parameters
+            content="redcap", **parameters
         )
 
-    def surveys(self, action, data=None, **parameters):
+    def surveys(self, action, **parameters):
         """Modify surveys"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="surveys", **parameters
+            content="surveys", **parameters
         )
 
-    def users(self, action, data=None, **parameters):
+    def users(self, action, **parameters):
         """Modify users"""
         return getattr(self, "{}_content".format(action))(
-            data=data, content="users", **parameters
+            content="users", **parameters
         )
 
 
-__all__ = ["BaseConnector", "Connector",]
+__all__ = ["Connector",]

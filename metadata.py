@@ -49,7 +49,7 @@ class HTMLParser(HTMLParser):
                 self.raw_metadata[index] = {col_name: attrs["value"]}
 
 
-class SQL:
+class MetadataSQL:
     """SQL statements for rendering migration files"""
     create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
     create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
@@ -70,9 +70,9 @@ class Metadata:
 
     def __contains__(self, item):
         """Implement membership test operators"""
-        if "___" in item and item in self.raw_field_names:
-            return True
-        if item in self.raw_metadata:
+        if self.raw_metadata.get(
+                self.raw_field_names[key]["original_field_name"]
+        ):
             return True
         return False
 
@@ -107,61 +107,32 @@ class Metadata:
             ):
                 return True
         return False
-        
 
     def __getitem__(self, key):
         """Get lazily-casted metadatum"""
         try:
             return self.items[key]
         except KeyError:
-            if "___" in key:
-                if key not in self.raw_field_names:
-                    raise KeyError
-                md = self.raw_metadata[
-                    self.raw_field_names[key]["original_field_name"]
-                ]
-            elif key in self.raw_metadata:
-                md = self.raw_metadata[key]
-            else:
+            if key not in self.raw_field_names:
                 raise KeyError
-            if md["field_type"] in {"checkbox", "radio"}:
-                md["select_choices_or_calculations"] = {
-                    int(k.strip()): v.strip()
-                    for k,v in (
-                        md[
-                            "select_choices_or_calculations"
-                        ].split("|")
-                    ).split(",")
-                }
-            md["branching_logic"] = self.load_logic(
-                md["branching_logic"], as_func=True
+            value = self.raw_metadata.get(
+                self.raw_field_names[key]["original_field_name"]
             )
-            md["required_field"] = False
-            if md["required_field"] == "y":
-                md["required_field"] = True
-            md["identifier"] = False
-            if md["identifier"] == "y":
-                md["identifier"] = True
-            self.items[key] = md
-            return md
+            self.__setitem__(key, value)
+        return self.items[key]
 
     def __init__(self, raw_metadata, raw_field_names, **kwargs):
         """Contruct attributes"""
         self.items = dict()
-        self.raw_metadata = {
-            d["field_name"]: d for d in raw_metadata
-        }
+        self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
         self.raw_field_names = {
             d["export_field_name"]: d for d in raw_field_names
         }
-        if "project" in kwargs:
-            self.project = kwargs["project"]
+        self.project = kwargs.get("project")
 
     def __iter__(self):
         """Return raw metadata iterator"""
-        return (
-            self.__getitem__(key) for key in self.raw_field_names
-        )
+        return (self[key] for key in self.raw_field_names)
 
     def __len__(self):
         """Return field count"""
@@ -173,26 +144,25 @@ class Metadata:
             value["field_name"] = key
         if list(value.keys()) != self.columns:
             raise Exception("New field missing columns")
-        self.raw_metadata.append(value)
-        ofn = value["field_name"]
-        if value["field_type"] == "checkbox":
-            for c in value[
-                "select_choices_or_calculations"
-            ].split("|"):
-                efn = ofn + "___" + c.split(",")[0].strip()
-                self.raw_field_names.append(
-                    {
-                        "original_field_name": ofn,
-                        "export_field_name": efn,
-                    }
-                )
-        else:
-            self.raw_field_names.append(
-                {
-                    "original_field_name": ofn,
-                    "export_field_name": ofn,
-                }
-            )
+        if value["field_type"] in {"checkbox", "radio"}:
+            value["select_choices_or_calculations"] = {
+                int(pair[0].strip()): pair[1].strip()
+                for pair in [
+                    choice.split(",") for choice in value[
+                        "select_choices_or_calculations"
+                    ].split("|")
+                ]
+            }
+        value["branching_logic"] = self.load_logic(
+            value["branching_logic"], as_func=True
+        )
+        value["required_field"] = False
+        if value["required_field"] == "y":
+            value["required_field"] = True
+        value["identifier"] = False
+        if value["identifier"] == "y":
+            value["identifier"] = True
+        self.items[key] = value
         LOGGER.info(
             "added to metadata: field_name=%s, field_type=%s",
             value["field_name"],
@@ -354,17 +324,17 @@ class Metadata:
         """Write a SQL migration file from metadata"""
         if schema: schema += "."
         with open(path, "w") as fp:
-            fp.write(SQL.create_schema.format(schema))
+            fp.write(MetadataSQL.create_schema.format(schema))
             if table_groups not in COLUMNS:
                 raise Exception("Invalid table grouping :/")
             for table, columns in groupby(
                 sorted(self.raw_metadata, key=lambda d: d[table_groups]),
                 key=lambda d: d[table_groups]
             ):
-                fp.write(SQL.create_table.format(schema + table))
+                fp.write(MetadataSQL.create_table.format(schema + table))
                 for c in columns:
                     fp.write(
-                        SQL.add_column.format(
+                        MetadataSQL.add_column.format(
                             schema + table,
                             c["field_name"],
                             data_type_map[c[COLUMNS[7]]][2]

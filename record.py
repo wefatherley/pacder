@@ -21,7 +21,7 @@ RecordDatum = namedtuple(
 )
 
 
-class Record:
+class RecordDep:
     """Record container"""
 
     def __contains__(self, item):
@@ -30,6 +30,7 @@ class Record:
 
     def __getitem__(self, key):
         """Get lazily-casted data"""
+        # TODO: the project should actually do all this stuff
         data = self.items[key]
         if isinstance(data, RecordDatum):
             return data
@@ -89,3 +90,10 @@ class Record:
             raise Exception("Field not in project metadata")
         self.items[key] = value
         
+
+class Record(dict):
+    """REDCap record container"""
+    def __new__(cls, metadata):
+        obj = super().__new__(cls)
+        # WIP
+        return obj
