@@ -150,23 +150,23 @@ data_type_map = {
 
 class FieldType:
     """Field type validator"""
-    def __init__(self, *args, **kwargs): pass
     def __delete__(self, obj): pass
     def __get__(self, obj, obj_owner=None): pass
     def __set__(self, obj, value): pass
+    def __set_name__(self, obj, name): pass
 
-    def text(self, value): pass
-    def notes(self, value): pass
-    def dropdown(self, value): pass
-    def radio(self, value): pass
-    def checkbox(self, value): pass
-    def file(self, value): pass
-    def calc(self, value): pass
-    def sql(self, value): pass
-    def descriptive(self, value): pass
-    def slider(self, value): pass
-    def yesno(self, value): pass
-    def truefalse(self, value): pass
+    def text(self, obj, value): pass
+    def notes(self, obj, value): pass
+    def dropdown(self, obj, value): pass
+    def radio(self, obj, value): pass
+    def checkbox(self, obj, value): pass
+    def file(self, obj, value): pass
+    def calc(self, obj, value): pass
+    def sql(self, obj, value): pass
+    def descriptive(self, obj, value): pass
+    def slider(self, obj, value): pass
+    def yesno(self, obj, value): pass
+    def truefalse(self, obj, value): pass
 
 
 __all__ = [

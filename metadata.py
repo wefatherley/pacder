@@ -70,9 +70,7 @@ class Metadata:
 
     def __contains__(self, item):
         """Implement membership test operators"""
-        if self.raw_metadata.get(
-                self.raw_field_names[key]["original_field_name"]
-        ):
+        if self.raw_metadata.get(item["field_name"]):
             return True
         return False
 

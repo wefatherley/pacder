@@ -2,7 +2,7 @@
 from collections import namedtuple
 from logging import getLogger
 
-from .util import data_type_map
+from .util import data_type_map, FieldType
 
 
 LOGGER = getLogger(__name__)
@@ -91,9 +91,61 @@ class RecordDep:
         self.items[key] = value
         
 
-class Record(dict):
+class Record:
     """REDCap record container"""
-    def __new__(cls, metadata):
+
+    def __call__(self, raw_record):
+        """(re)set record data values"""
+        for k,v in raw_record.items():
+            if "___" in k:
+                k = k.split("___")
+                k,v = k[0], (k[1], v)
+            setattr(self, k, v)
+    
+    def __contains__(self, item):
+        """Implement membership test operator"""
+        pass
+
+    def __delitem__(self, field):
+        """Delete field value"""
+        pass
+    
+    def __eq__(self, item):
+        """Implement equality comparison operator"""
+        pass
+
+    def __getitem__(self, field):
+        """Return field"""
+        pass
+
+    def __init__(self, raw_record=dict()):
+        """Construct instance"""
+        for k,v in raw_record.items():
+            if "___" in k:
+                k = k.split("___")
+                k,v = k[0], (k[1], v)
+            setattr(self, k, v)
+
+    def __iter__(self):
+        """return iterator of self"""
+        pass
+
+    def __len__(self):
+        """Return number of fields"""
+        pass
+
+    def __new__(cls, **kwargs):
+        """Initialize and name field descriptors"""
         obj = super().__new__(cls)
-        # WIP
+        for field in kwargs.get("metadata", list()):
+            setattr(obj, field["field_name"], FieldType())
         return obj
+
+    def __setitem__(self, field, value):
+        """Set record field value"""
+        pass
+
+    @classmethod
+    def validation_hook(cls, func):
+        """Validation function wrapper"""
+        pass
