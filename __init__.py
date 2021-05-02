@@ -7,6 +7,9 @@ from .metadata import Metadata
 from .record import Record
 
 
+__all__ = ["Connector", "Metadata", "Project", "Record",]
+
+
 LOGGER = getLogger(__name__)
 
 
@@ -45,6 +48,3 @@ class Project:
     def sql_migration(self, *args, **kwargs):
         """Return SQL migration for project metadata"""
         return self.metadata.sql_migration(*args, **kwargs)
-
-
-__all__ = ["Connector", "Metadata", "Project", "Record",]

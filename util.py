@@ -4,6 +4,9 @@ from datetime import date, datetime, time
 from decimal import Context, Decimal, ROUND_HALF_UP
 
 
+__all__ = ["data_type_map",]
+
+
 DCM = { # decimal context map
     "number": Context(prec=None, rounding=ROUND_HALF_UP),
     "number_1dp_comma_decimal": Context(prec=1, rounding=ROUND_HALF_UP),
@@ -146,29 +149,3 @@ data_type_map = {
     "Zipcode": (lambda s: s, lambda s: s, "TEXT",),
     "": (lambda s: s, lambda s: s, "TEXT",),
 }
-
-
-class FieldType:
-    """Field type validator"""
-    def __delete__(self, obj): pass
-    def __get__(self, obj, obj_owner=None): pass
-    def __set__(self, obj, value): pass
-    def __set_name__(self, obj, name): pass
-
-    def text(self, obj, value): pass
-    def notes(self, obj, value): pass
-    def dropdown(self, obj, value): pass
-    def radio(self, obj, value): pass
-    def checkbox(self, obj, value): pass
-    def file(self, obj, value): pass
-    def calc(self, obj, value): pass
-    def sql(self, obj, value): pass
-    def descriptive(self, obj, value): pass
-    def slider(self, obj, value): pass
-    def yesno(self, obj, value): pass
-    def truefalse(self, obj, value): pass
-
-
-__all__ = [
-    "data_type_map", "FieldType",
-]

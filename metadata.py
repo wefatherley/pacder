@@ -12,6 +12,9 @@ from re import compile, finditer, sub
 from .util import data_type_map
 
 
+__all__ = ["Metadata",]
+
+
 LOGGER = getLogger(__name__)
 
 
@@ -141,7 +144,7 @@ class Metadata:
         if "field_name" not in value:
             value["field_name"] = key
         if list(value.keys()) != self.columns:
-            raise Exception("New field missing columns")
+            raise Exception("new field missing columns")
         if value["field_type"] in {"checkbox", "radio"}:
             value["select_choices_or_calculations"] = {
                 int(pair[0].strip()): pair[1].strip()
@@ -245,7 +248,7 @@ class Metadata:
     def dump(self, fp, fmt="csv", close_fp=True):
         """Dump formatted metadata to file pointer"""
         if len(self) == 0:
-            raise Exception("Cannot dump empty metadata")
+            raise Exception("cannot dump empty metadata")
         if isinstance(fp, str):
             if fmt == "csv": fp = open(fp, "w", newline="")
             else: fp = open(fp, "w")
@@ -324,7 +327,7 @@ class Metadata:
         with open(path, "w") as fp:
             fp.write(MetadataSQL.create_schema.format(schema))
             if table_groups not in COLUMNS:
-                raise Exception("Invalid table grouping :/")
+                raise Exception("invalid table grouping :/")
             for table, columns in groupby(
                 sorted(self.raw_metadata, key=lambda d: d[table_groups]),
                 key=lambda d: d[table_groups]
@@ -338,6 +341,3 @@ class Metadata:
                             data_type_map[c[COLUMNS[7]]][2]
                         )
                     )
-
-
-__all__ = ["Metadata",]

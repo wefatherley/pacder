@@ -2,7 +2,11 @@
 from collections import namedtuple
 from logging import getLogger
 
-from .util import data_type_map, FieldType
+from .metadata import Metadata
+from .util import data_type_map
+
+
+__all__ = ["Record",]
 
 
 LOGGER = getLogger(__name__)
@@ -87,20 +91,59 @@ class RecordDep:
     def __setitem__(self, key, value):
         """Set record item"""
         if key not in self.metadata.raw_field_names:
-            raise Exception("Field not in project metadata")
+            raise Exception("field not in project metadata")
         self.items[key] = value
         
+
+class Field:
+    """Field descriptor"""
+
+    def __delete__(self, obj):
+        """Validate delete and delete field value"""
+        pass
+
+    def __get__(self, obj, obj_owner=None):
+        """Validate and return field value"""
+        # still need to choose how to handle checkbox
+        pass
+        
+
+    def __set__(self, obj, value):
+        """Validate and set field value"""
+        # two situations:
+        # empty record, setting for the first time
+        # or updating set value
+        pass
+
+
+    def __set_name__(self, obj, name):
+        """Remember what descriptor manages"""
+        self.name = name
+
+    def text(self, obj, value): pass
+    def notes(self, obj, value): pass
+    def dropdown(self, obj, value): pass
+    def radio(self, obj, value): pass
+    def checkbox(self, obj, value): pass
+    def file(self, obj, value): pass
+    def calc(self, obj, value): pass
+    def sql(self, obj, value): pass
+    def descriptive(self, obj, value): pass
+    def slider(self, obj, value): pass
+    def yesno(self, obj, value): pass
+    def truefalse(self, obj, value): pass
+
 
 class Record:
     """REDCap record container"""
 
-    def __call__(self, raw_record):
-        """(re)set record data values"""
-        for k,v in raw_record.items():
-            if "___" in k:
-                k = k.split("___")
-                k,v = k[0], (k[1], v)
-            setattr(self, k, v)
+    # def __call__(self, raw_record):
+    #     """(re)set record data values"""
+    #     for k,v in raw_record.items():
+    #         if "___" in k:
+    #             k = k.split("___")
+    #             k,v = k[0], (k[1], v)
+    #         setattr(self, k, v)
     
     def __contains__(self, item):
         """Implement membership test operator"""
@@ -116,11 +159,13 @@ class Record:
 
     def __getitem__(self, field):
         """Return field"""
-        pass
+        return getattr(self, field)
 
-    def __init__(self, raw_record=dict(), **kwargs):
+    def __init__(self, record_json=dict(), **kwargs):
         """Construct instance"""
-        self.__call__(raw_record)
+        if isinstance(record_json, (bytes, str)):
+            record_json = loads(record_json)
+        self.record_json = record_json
 
     def __iter__(self):
         """return iterator of self"""
@@ -135,8 +180,10 @@ class Record:
         try:
             metadata = kwargs["metadata"]
         except KeyError:
-            raise Exception("Record objects require metadata")
+            raise Exception("Record class requires metadata")
         else:
+            if not isinstance(metadata, Metadata):
+                raise Exception("metadata must be Metadata instance")
             for md in metadata:
                 setattr(cls, md["field_name"], FieldType())
             obj = super().__new__(cls)
@@ -145,7 +192,7 @@ class Record:
 
     def __setitem__(self, field, value):
         """Set record field value"""
-        pass
+        setattr(self, field, value)
     
     
     def preprocessor(self, func):

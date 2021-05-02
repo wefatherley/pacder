@@ -5,6 +5,9 @@ from logging import getLogger
 from urllib.parse import urlencode
 
 
+__all__ = ["Connector",]
+
+
 LOGGER = getLogger(__name__)
 
 
@@ -130,7 +133,7 @@ class Connector(BaseConnector):
     def delete_content(self, content, **parameters):
         """Delete content"""
         if "data" in parameters:
-            raise Exception("Can't delete with data")
+            raise Exception("can't delete with data")
         body = self.url_encode(
             action="delete", content=content, **parameters
         )
@@ -145,7 +148,7 @@ class Connector(BaseConnector):
     def export_content(self, content, **parameters):
         """Export content"""
         if "data" in parameters:
-            raise Exception("Can't export with data")
+            raise Exception("can't export with data")
         body = self.url_encode(
             action="export", content=content, **parameters
         )
@@ -248,6 +251,3 @@ class Connector(BaseConnector):
         return getattr(self, "{}_content".format(action))(
             content="users", **parameters
         )
-
-
-__all__ = ["Connector",]
