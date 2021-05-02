@@ -118,13 +118,9 @@ class Record:
         """Return field"""
         pass
 
-    def __init__(self, raw_record=dict()):
+    def __init__(self, raw_record=dict(), **kwargs):
         """Construct instance"""
-        for k,v in raw_record.items():
-            if "___" in k:
-                k = k.split("___")
-                k,v = k[0], (k[1], v)
-            setattr(self, k, v)
+        self.__call__(raw_record)
 
     def __iter__(self):
         """return iterator of self"""
@@ -136,16 +132,22 @@ class Record:
 
     def __new__(cls, **kwargs):
         """Initialize and name field descriptors"""
-        obj = super().__new__(cls)
-        for field in kwargs.get("metadata", list()):
-            setattr(obj, field["field_name"], FieldType())
-        return obj
+        try:
+            metadata = kwargs["metadata"]
+        except KeyError:
+            raise Exception("Record objects require metadata")
+        else:
+            for md in metadata:
+                setattr(cls, md["field_name"], FieldType())
+            obj = super().__new__(cls)
+            obj.metadata = metadata
+            return obj
 
     def __setitem__(self, field, value):
         """Set record field value"""
         pass
-
-    @classmethod
-    def validation_hook(cls, func):
+    
+    
+    def preprocessor(self, func):
         """Validation function wrapper"""
         pass
