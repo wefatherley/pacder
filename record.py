@@ -100,38 +100,67 @@ class Field:
 
     def __delete__(self, obj):
         """Validate delete and delete field value"""
-        pass
+        return getattr(
+            self, "del_" + obj.metadata[self.name]["field_type"]
+        )(obj.metadata, obj.record_json[self.name])
 
     def __get__(self, obj, obj_owner=None):
         """Validate and return field value"""
-        # still need to choose how to handle checkbox
-        pass
-        
+        return getattr(
+            self, "get_" + obj.metadata[self.name]["field_type"]
+        )(obj.metadata, obj.record_json[self.name])
 
     def __set__(self, obj, value):
         """Validate and set field value"""
         # two situations:
         # empty record, setting for the first time
         # or updating set value
-        pass
-
+        return getattr(
+            self, "set_" + obj.metadata[self.name]["field_type"]
+        )(obj.metadata, obj.record_json[self.name])
 
     def __set_name__(self, obj, name):
         """Remember what descriptor manages"""
         self.name = name
 
-    def text(self, obj, value): pass
-    def notes(self, obj, value): pass
-    def dropdown(self, obj, value): pass
-    def radio(self, obj, value): pass
-    def checkbox(self, obj, value): pass
-    def file(self, obj, value): pass
-    def calc(self, obj, value): pass
-    def sql(self, obj, value): pass
-    def descriptive(self, obj, value): pass
-    def slider(self, obj, value): pass
-    def yesno(self, obj, value): pass
-    def truefalse(self, obj, value): pass
+    def del_text(self, metadata, value): pass
+    def del_notes(self, metadata, value): pass
+    def del_dropdown(self, metadata, value): pass
+    def del_radio(self, metadata, value): pass
+    def del_checkbox(self, metadata, value): pass
+    def del_file(self, metadata, value): pass
+    def del_calc(self, metadata, value): pass
+    def del_sql(self, metadata, value): pass
+    def del_descriptive(self, metadata, value): pass
+    def del_slider(self, metadata, value): pass
+    def del_yesno(self, metadata, value): pass
+    def del_truefalse(self, metadata, value): pass
+
+    def get_text(self, metadata, value): pass
+    def get_notes(self, metadata, value): pass
+    def get_dropdown(self, metadata, value): pass
+    def get_radio(self, metadata, value): pass
+    def get_checkbox(self, metadata, value): pass
+    def get_file(self, metadata, value): pass
+    def get_calc(self, metadata, value): pass
+    def get_sql(self, metadata, value): pass
+    def get_descriptive(self, metadata, value): pass
+    def get_slider(self, metadata, value): pass
+    def get_yesno(self, metadata, value): pass
+    def get_truefalse(self, metadata, value): pass
+
+    def set_text(self, metadata, value): pass
+    def set_notes(self, metadata, value): pass
+    def set_dropdown(self, metadata, value): pass
+    def set_radio(self, metadata, value): pass
+    def set_checkbox(self, metadata, value): pass
+    def set_file(self, metadata, value): pass
+    def set_calc(self, metadata, value): pass
+    def set_sql(self, metadata, value): pass
+    def set_descriptive(self, metadata, value): pass
+    def set_slider(self, metadata, value): pass
+    def set_yesno(self, metadata, value): pass
+    def set_truefalse(self, metadata, value): pass
 
 
 class Record:
