@@ -1,5 +1,6 @@
 """Record and related objects"""
 from collections import namedtuple
+from json import loads
 from logging import getLogger
 
 from .metadata import Metadata
@@ -102,52 +103,49 @@ class Field:
         """Validate delete and delete field value"""
         return getattr(
             self, "del_" + obj.metadata[self.name]["field_type"]
-        )(obj.metadata, obj.record_json[self.name])
+        )(obj.metadata[self.name])
 
     def __get__(self, obj, obj_owner=None):
         """Validate and return field value"""
         return getattr(
             self, "get_" + obj.metadata[self.name]["field_type"]
-        )(obj.metadata, obj.record_json[self.name])
+        )(obj.metadata[self.name])
 
     def __set__(self, obj, value):
         """Validate and set field value"""
-        # two situations:
-        # empty record, setting for the first time
-        # or updating set value
         return getattr(
             self, "set_" + obj.metadata[self.name]["field_type"]
-        )(obj.metadata, obj.record_json[self.name])
+        )(obj.metadata[self.name], value)
 
-    def __set_name__(self, obj, name):
+    def __set_name__(self, obj_owner, name):
         """Remember what descriptor manages"""
         self.name = name
 
-    def del_text(self, metadata, value): pass
-    def del_notes(self, metadata, value): pass
-    def del_dropdown(self, metadata, value): pass
-    def del_radio(self, metadata, value): pass
-    def del_checkbox(self, metadata, value): pass
-    def del_file(self, metadata, value): pass
-    def del_calc(self, metadata, value): pass
-    def del_sql(self, metadata, value): pass
-    def del_descriptive(self, metadata, value): pass
-    def del_slider(self, metadata, value): pass
-    def del_yesno(self, metadata, value): pass
-    def del_truefalse(self, metadata, value): pass
+    def del_text(self, metadata): pass
+    def del_notes(self, metadata): pass
+    def del_dropdown(self, metadata): pass
+    def del_radio(self, metadata): pass
+    def del_checkbox(self, metadata): pass
+    def del_file(self, metadata): pass
+    def del_calc(self, metadata): pass
+    def del_sql(self, metadata): pass
+    def del_descriptive(self, metadata): pass
+    def del_slider(self, metadata): pass
+    def del_yesno(self, metadata): pass
+    def del_truefalse(self, metadata): pass
 
-    def get_text(self, metadata, value): pass
-    def get_notes(self, metadata, value): pass
-    def get_dropdown(self, metadata, value): pass
-    def get_radio(self, metadata, value): pass
-    def get_checkbox(self, metadata, value): pass
-    def get_file(self, metadata, value): pass
-    def get_calc(self, metadata, value): pass
-    def get_sql(self, metadata, value): pass
-    def get_descriptive(self, metadata, value): pass
-    def get_slider(self, metadata, value): pass
-    def get_yesno(self, metadata, value): pass
-    def get_truefalse(self, metadata, value): pass
+    def get_text(self, metadata): pass
+    def get_notes(self, metadata): pass
+    def get_dropdown(self, metadata): pass
+    def get_radio(self, metadata): pass
+    def get_checkbox(self, metadata): pass
+    def get_file(self, metadata): pass
+    def get_calc(self, metadata): pass
+    def get_sql(self, metadata): pass
+    def get_descriptive(self, metadata): pass
+    def get_slider(self, metadata): pass
+    def get_yesno(self, metadata): pass
+    def get_truefalse(self, metadata): pass
 
     def set_text(self, metadata, value): pass
     def set_notes(self, metadata, value): pass
@@ -174,17 +172,24 @@ class Record:
     #             k,v = k[0], (k[1], v)
     #         setattr(self, k, v)
     
-    def __contains__(self, item):
+    def __contains__(self, field_name):
         """Implement membership test operator"""
-        pass
+        if self.record_json.get(field_name):
+            return True
+        return False
 
     def __delitem__(self, field):
         """Delete field value"""
-        pass
+        delattr(self, field)
     
-    def __eq__(self, item):
-        """Implement equality comparison operator"""
-        pass
+    def __eq__(self, other):
+        """Implement `==`"""
+        if type(self) is not type(other):
+            return NotImplemented
+        if hasattr(other, "record_json"):
+            if other.record_json == self.record_json:
+                return True
+        return False
 
     def __getitem__(self, field):
         """Return field"""
@@ -198,18 +203,18 @@ class Record:
 
     def __iter__(self):
         """return iterator of self"""
-        pass
+        return (self[key] for key in self.record_json)
 
     def __len__(self):
         """Return number of fields"""
-        pass
+        return len(self.record_json)
 
     def __new__(cls, **kwargs):
         """Initialize and name field descriptors"""
         try:
             metadata = kwargs["metadata"]
         except KeyError:
-            raise Exception("Record class requires metadata")
+            raise Exception("Record class requires Metadata object")
         else:
             if not isinstance(metadata, Metadata):
                 raise Exception("metadata must be Metadata instance")
