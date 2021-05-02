@@ -27,8 +27,8 @@ class BaseConnector(client.HTTPSConnection):
 
     path_stack = []
     static_headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
+        "accept": "application/json",
+        "content-type": "application/x-www-form-urlencoded",
     }
 
     def __enter__(self):
