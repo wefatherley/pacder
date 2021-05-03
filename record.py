@@ -121,44 +121,151 @@ class Field:
         """Remember what descriptor manages"""
         self.name = name
 
-    def del_text(self, metadata): pass
-    def del_notes(self, metadata): pass
-    def del_dropdown(self, metadata): pass
-    def del_radio(self, metadata): pass
-    def del_checkbox(self, metadata): pass
-    def del_file(self, metadata): pass
-    def del_calc(self, metadata): pass
-    def del_sql(self, metadata): pass
-    def del_descriptive(self, metadata): pass
-    def del_slider(self, metadata): pass
-    def del_yesno(self, metadata): pass
-    def del_truefalse(self, metadata): pass
+    def del_text(self, metadata):
+        """delete Record datum corresponding to text"""
+        raise NotImplemented
 
-    def get_text(self, metadata): pass
-    def get_notes(self, metadata): pass
-    def get_dropdown(self, metadata): pass
-    def get_radio(self, metadata): pass
-    def get_checkbox(self, metadata): pass
-    def get_file(self, metadata): pass
-    def get_calc(self, metadata): pass
-    def get_sql(self, metadata): pass
-    def get_descriptive(self, metadata): pass
-    def get_slider(self, metadata): pass
-    def get_yesno(self, metadata): pass
-    def get_truefalse(self, metadata): pass
+    def del_notes(self, metadata):
+        """delete Record datum corresponding to notes"""
+        raise NotImplemented
 
-    def set_text(self, metadata, value): pass
-    def set_notes(self, metadata, value): pass
-    def set_dropdown(self, metadata, value): pass
-    def set_radio(self, metadata, value): pass
-    def set_checkbox(self, metadata, value): pass
-    def set_file(self, metadata, value): pass
-    def set_calc(self, metadata, value): pass
-    def set_sql(self, metadata, value): pass
-    def set_descriptive(self, metadata, value): pass
-    def set_slider(self, metadata, value): pass
-    def set_yesno(self, metadata, value): pass
-    def set_truefalse(self, metadata, value): pass
+    def del_dropdown(self, metadata):
+        """delete Record datum corresponding to dropdown"""
+        raise NotImplemented
+
+    def del_radio(self, metadata):
+        """delete Record datum corresponding to radio"""
+        raise NotImplemented
+
+    def del_checkbox(self, metadata):
+        """delete Record datum corresponding to checkbox"""
+        raise NotImplemented
+
+    def del_file(self, metadata):
+        """delete Record datum corresponding to file"""
+        raise NotImplemented
+
+    def del_calc(self, metadata):
+        """delete Record datum corresponding to calc"""
+        raise NotImplemented
+
+    def del_sql(self, metadata):
+        """delete Record datum corresponding to sql"""
+        raise NotImplemented
+
+    def del_descriptive(self, metadata):
+        """delete Record datum corresponding to descriptive"""
+        raise NotImplemented
+
+    def del_slider(self, metadata):
+        """delete Record datum corresponding to slider"""
+        raise NotImplemented
+
+    def del_yesno(self, metadata):
+        """delete Record datum corresponding to yesno"""
+        raise NotImplemented
+        
+    def del_truefalse(self, metadata):
+        """delete Record datum corresponding to truefalse"""
+        raise NotImplemented
+        
+    def get_text(self, metadata):
+        """get Record datum corresponding to text"""
+        raise NotImplemented
+        
+    def get_notes(self, metadata):
+        """get Record datum corresponding to notes"""
+        raise NotImplemented
+        
+    def get_dropdown(self, metadata):
+        """get Record datum corresponding to dropdown"""
+        raise NotImplemented
+        
+    def get_radio(self, metadata):
+        """get Record datum corresponding to raadio"""
+        raise NotImplemented
+        
+    def get_checkbox(self, metadata):
+        """get Record datum corresponding to checkbox"""
+        raise NotImplemented
+        
+    def get_file(self, metadata):
+        """get Record datum corresponding to file"""
+        raise NotImplemented
+        
+    def get_calc(self, metadata):
+        """get Record datum corresponding to calc"""
+        raise NotImplemented
+        
+    def get_sql(self, metadata):
+        """get Record datum corresponding to sql"""
+        raise NotImplemented
+        
+    def get_descriptive(self, metadata):
+        """get Record datum corresponding to descriptive"""
+        raise NotImplemented
+        
+    def get_slider(self, metadata):
+        """get Record datum corresponding to slider"""
+        raise NotImplemented
+        
+    def get_yesno(self, metadata):
+        """get Record datum corresponding to yesno"""
+        raise NotImplemented
+        
+    def get_truefalse(self, metadata):
+        """get Record datum corresponding to truefalse"""
+        raise NotImplemented
+        
+
+    def set_text(self, metadata, value):
+        """set Record datum corresponding to text"""
+        raise NotImplemented
+        
+    def set_notes(self, metadata, value):
+        """set Record datum corresponding to notes"""
+        raise NotImplemented
+        
+    def set_dropdown(self, metadata, value):
+        """set Record datum corresponding to dropdown"""
+        raise NotImplemented
+        
+    def set_radio(self, metadata, value):
+        """set Record datum corresponding to radio"""
+        raise NotImplemented
+        
+    def set_checkbox(self, metadata, value):
+        """set Record datum corresponding to checkbox"""
+        raise NotImplemented
+        
+    def set_file(self, metadata, value):
+        """set Record datum corresponding to file"""
+        raise NotImplemented
+        
+    def set_calc(self, metadata, value):
+        """set Record datum corresponding to calc"""
+        raise NotImplemented
+        
+    def set_sql(self, metadata, value):
+        """set Record datum corresponding to sql"""
+        raise NotImplemented
+        
+    def set_descriptive(self, metadata, value):
+        """set Record datum corresponding to descriptive"""
+        raise NotImplemented
+        
+    def set_slider(self, metadata, value):
+        """set Record datum corresponding to slider"""
+        raise NotImplemented
+        
+    def set_yesno(self, metadata, value):
+        """set Record datum corresponding to yesno"""
+        raise NotImplemented
+        
+    def set_truefalse(self, metadata, value):
+        """set Record datum corresponding to truefalse"""
+        raise NotImplemented
+        
 
 
 class Record:
@@ -195,11 +302,16 @@ class Record:
         """Return field"""
         return getattr(self, field)
 
-    def __init__(self, record_json=dict(), **kwargs):
+    def __init__(self, **kwargs):
         """Construct instance"""
-        if isinstance(record_json, (bytes, str)):
-            record_json = loads(record_json)
-        self.record_json = record_json
+        try:
+            record_json = kwargs["record_json"]
+        except KeyError:
+            raise Exception("Record requires `record_json` kwarg")
+        else:
+            if isinstance(record_json, (bytes, str)):
+                record_json = loads(record_json)
+            self.record_json = record_json
 
     def __iter__(self):
         """return iterator of self"""
@@ -219,7 +331,7 @@ class Record:
             if not isinstance(metadata, Metadata):
                 raise Exception("metadata must be Metadata instance")
             for md in metadata:
-                setattr(cls, md["field_name"], FieldType())
+                setattr(cls, md["field_name"], Field())
             obj = super().__new__(cls)
             obj.metadata = metadata
             return obj
@@ -227,8 +339,3 @@ class Record:
     def __setitem__(self, field, value):
         """Set record field value"""
         setattr(self, field, value)
-    
-    
-    def preprocessor(self, func):
-        """Validation function wrapper"""
-        pass
