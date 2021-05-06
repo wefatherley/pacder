@@ -75,14 +75,21 @@ To interact with the API of a REDCap instance, it is necessary to utilize a "web
    Note for :class:`Connector` instances that there are a few attributes that are useful in various contexts. For example, to have a look at all the API requests made, ``Connector.path_stack`` contains an ordered list of request URLs.
 
 
-:mod:`metadata` - Metadata object
----------------------------------
+:mod:`metadata` - Metadata and associated objects
+-------------------------------------------------
 
 A project's metadata (a.k.a. data dictionary) is the defining feature of the project itself, and houses important information related to the typing, validation, and overall characteristics of project records. This module defines a class, :class:`Metadata`, that makes Pythonic the columns of a project's metadata, and also provides several convience methods for external application development.
 
 .. class:: Metadata(raw_metadata, raw_field_names)
 
    This class is the "public" interface to a REDCap project's metadata. As a container emulator, a given project field is accessible in the same manner as accessing the values of a dictionary.
+
+
+:mod:`record` - Record and associated objects
+---------------------------------------------
+
+When a project has it's metadata defined and is moved into production, it can receive and store records. Records can represent points in a series, such as species titers in a temporal molecular biology assay, or can represent a collection of interview responses, such as those in a coginitive assessment. This module defines objects for creating or retrieving records.
+
 
 :mod:`util` - Utility objects
 -----------------------------
