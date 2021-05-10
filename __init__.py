@@ -33,7 +33,8 @@ class Project:
         with self.connector as conn:
             self.metadata = Metadata(
                 loads(conn.metadata("export").decode("latin-1")),
-                loads(conn.field_names("export").decode("latin-1"))
+                loads(conn.field_names("export").decode("latin-1")),
+                project=self
             )
 
     def iter_records(self, return_container=RecordDep, **query):

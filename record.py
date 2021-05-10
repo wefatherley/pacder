@@ -217,7 +217,6 @@ class Field:
         """get Record datum corresponding to truefalse"""
         raise NotImplemented
         
-
     def set_text(self, metadata, value):
         """set Record datum corresponding to text"""
         raise NotImplemented
@@ -270,14 +269,6 @@ class Field:
 
 class Record:
     """REDCap record container"""
-
-    # def __call__(self, raw_record):
-    #     """(re)set record data values"""
-    #     for k,v in raw_record.items():
-    #         if "___" in k:
-    #             k = k.split("___")
-    #             k,v = k[0], (k[1], v)
-    #         setattr(self, k, v)
     
     def __contains__(self, field_name):
         """Implement membership test operator"""
