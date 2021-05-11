@@ -3,7 +3,7 @@ from collections import namedtuple
 from json import loads
 from logging import getLogger
 
-from . import Project
+from . import Metadata
 from .util import data_type_map
 
 
@@ -101,20 +101,24 @@ class Field:
 
     def __delete__(self, obj):
         """Validate delete and delete field value"""
-        pass
+        setattr(obj, "_" + self.name, None)
 
     def __get__(self, obj, obj_owner=None):
         """Validate and return field value"""
-        return obj.record_json[self.name]
+        return getattr(obj, self.name, None)
 
     def __set__(self, obj, value):
         """Validate and set field value"""
-        pass
+        value = data_type_map[
+            self.metadata[k][self.metadata.columns[7]]
+        ][0](v)
+        # TODO: validation steps to set self.valid
+        setattr(obj, "_" + self.name, value)
 
     def __set_name__(self, obj_owner, name):
         """Remember what descriptor manages"""
         self.name = name
-        self.validated = False
+        self.valid = None
 
 
 class Record:
@@ -141,25 +145,16 @@ class Record:
 
     def __getitem__(self, field):
         """Return field"""
-        return getattr(self, field)
+        return getattr(self, "_" + field)
 
     def __init__(self, **kwargs):
         """Construct instance"""
         record_json = kwargs.get("record_json")
+        if record_json is None: pass
         if isinstance(record_json, (bytes, str)):
             record_json = loads(record_json)
-        if record_json is None:
-            self.record_json = {
-                field: None for field
-                in self.metadata.raw_field_names
-            }
-        else:
-            self.record_json = {
-                k: data_type_map[
-                    self.metadata[key][self.metadata.columns[7]]
-                ][0](v)
-                for k,v in record_json.items()
-            }
+        for k,v in record_json.items():
+            setattr(self, k, v)
 
     def __iter__(self):
         """return iterator of self"""
@@ -171,13 +166,13 @@ class Record:
 
     def __new__(cls, **kwargs):
         """Initialize and name field descriptors"""
-        project = kwargs.get("metadata")
+        metadata = kwargs.get("metadata")
         if not isinstance(metadata, Metadata):
             raise Exception("metadata must be Metadata instance")
         for md in metadata:
             setattr(cls, md["field_name"], Field())
         obj = super().__new__(cls)
-        obj.metadata = metadata
+        obj.project = project
         return obj
 
     def __setitem__(self, field, value):
