@@ -105,7 +105,7 @@ class Field:
 
     def __get__(self, obj, obj_owner=None):
         """Validate and return field value"""
-        return getattr(obj, self.name, None)
+        return getattr(obj, "_" + self.name, None)
 
     def __set__(self, obj, value):
         """Validate and set field value"""
@@ -145,7 +145,7 @@ class Record:
 
     def __getitem__(self, field):
         """Return field"""
-        return getattr(self, "_" + field)
+        return getattr(self, field)
 
     def __init__(self, **kwargs):
         """Construct instance"""
