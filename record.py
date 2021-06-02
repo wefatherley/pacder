@@ -97,18 +97,18 @@ class RecordDep:
         
 
 class Field:
-    """Field descriptor"""
+    """field descriptor"""
 
     def __delete__(self, obj):
-        """Validate delete and delete field value"""
+        """validate delete and delete field value"""
         setattr(obj, "_" + self.name, None)
 
     def __get__(self, obj, obj_owner=None):
-        """Validate and return field value"""
+        """validate and return field value"""
         return getattr(obj, "_" + self.name, None)
 
     def __set__(self, obj, value):
-        """Validate and set field value"""
+        """validate and set field value"""
         value = data_type_map[
             self.metadata[k][self.metadata.columns[7]]
         ][0](v)
@@ -116,7 +116,7 @@ class Field:
         setattr(obj, "_" + self.name, value)
 
     def __set_name__(self, obj_owner, name):
-        """Remember what descriptor manages"""
+        """remember what descriptor manages"""
         self.name = name
         self.valid = None
 
@@ -125,17 +125,17 @@ class Record:
     """REDCap record container"""
     
     def __contains__(self, field_name):
-        """Implement membership test operator"""
+        """implement membership test operator"""
         if self.record_json.get(field_name):
             return True
         return False
 
     def __delitem__(self, field):
-        """Delete field value"""
+        """delete field value"""
         delattr(self, field)
     
     def __eq__(self, other):
-        """Implement `==`"""
+        """implement `==`"""
         if type(self) is not type(other):
             return NotImplemented
         if hasattr(other, "record_json"):
@@ -144,11 +144,11 @@ class Record:
         return False
 
     def __getitem__(self, field):
-        """Return field"""
+        """return field"""
         return getattr(self, field)
 
     def __init__(self, **kwargs):
-        """Construct instance"""
+        """construct instance"""
         record_json = kwargs.get("record_json")
         if record_json is None: pass
         if isinstance(record_json, (bytes, str)):
@@ -161,11 +161,11 @@ class Record:
         return (self[key] for key in self.record_json)
 
     def __len__(self):
-        """Return number of fields"""
+        """return number of fields"""
         return len(self.record_json)
 
     def __new__(cls, **kwargs):
-        """Initialize and name field descriptors"""
+        """initialize and name field descriptors"""
         metadata = kwargs.get("metadata")
         if not isinstance(metadata, Metadata):
             raise Exception("metadata must be Metadata instance")
@@ -176,5 +176,5 @@ class Record:
         return obj
 
     def __setitem__(self, field, value):
-        """Set record field value"""
+        """set record field value"""
         setattr(self, field, value)
