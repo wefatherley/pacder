@@ -3,7 +3,6 @@ from collections import namedtuple
 from json import loads
 from logging import getLogger
 
-from . import Metadata
 from .util import data_type_map
 
 
@@ -26,74 +25,74 @@ RecordDatum = namedtuple(
 )
 
 
-class RecordDep:
-    """Record container"""
+# class RecordDep:
+#     """Record container"""
 
-    def __contains__(self, item):
-        """Implement membership test operators"""
-        pass
+#     def __contains__(self, item):
+#         """Implement membership test operators"""
+#         pass
 
-    def __getitem__(self, key):
-        """Get lazily-casted data"""
-        # TODO: the project should actually do all this stuff
-        data = self.items[key]
-        if isinstance(data, RecordDatum):
-            return data
-        ofn = self.metadata[key]["field_name"]
-        if self.metadata[key]["field_type"] == "checkbox":
-            checkboxes = {
-                k.split("___")[-1]: True if v else False
-                for k,v in self.items.items()
-                if k.startswith(ofn + "___")
-            }
-        else:
-            valid = (
-                self.metadata[key]["text_validation_min"](data)
-                and self.metadata[key]["text_validation_max"](data)
-            )
-            value = data_type_map[
-                self.metadata[key][self.metadata.columns[7]]
-            ][0](data)
-            values = [data]
-            record_datum = RecordDatum(
-                branching_logic=self.metadata[key][
-                    "branching_logic"
-                ](record),
-                ofn=ofn,
-                raw_value=raw_value,
-                valid=valid,
-                value=value,
-                values=values
-            )
-            self.items[key] = record_datum
-        for k,vals in checkboxes.items():
-            bl = self.metadata[k]["branching_logic"](record)
-            atleastone = any(vals.values())
-            valid = not (atleastone and not bl) # WIP
-            record[k] = RecordDatum(
-                branching_logic=bl,
-                ofn=ofn,
-                raw_value=vals,
-                valid=valid,
-                value=atleastone,
-                values={k: bool(v) for k,v in vals.items()}
-            )
-        return record_datum
+#     def __getitem__(self, key):
+#         """Get lazily-casted data"""
+#         # TODO: the project should actually do all this stuff
+#         data = self.items[key]
+#         if isinstance(data, RecordDatum):
+#             return data
+#         ofn = self.metadata[key]["field_name"]
+#         if self.metadata[key]["field_type"] == "checkbox":
+#             checkboxes = {
+#                 k.split("___")[-1]: True if v else False
+#                 for k,v in self.items.items()
+#                 if k.startswith(ofn + "___")
+#             }
+#         else:
+#             valid = (
+#                 self.metadata[key]["text_validation_min"](data)
+#                 and self.metadata[key]["text_validation_max"](data)
+#             )
+#             value = data_type_map[
+#                 self.metadata[key][self.metadata.columns[7]]
+#             ][0](data)
+#             values = [data]
+#             record_datum = RecordDatum(
+#                 branching_logic=self.metadata[key][
+#                     "branching_logic"
+#                 ](record),
+#                 ofn=ofn,
+#                 raw_value=raw_value,
+#                 valid=valid,
+#                 value=value,
+#                 values=values
+#             )
+#             self.items[key] = record_datum
+#         for k,vals in checkboxes.items():
+#             bl = self.metadata[k]["branching_logic"](record)
+#             atleastone = any(vals.values())
+#             valid = not (atleastone and not bl) # WIP
+#             record[k] = RecordDatum(
+#                 branching_logic=bl,
+#                 ofn=ofn,
+#                 raw_value=vals,
+#                 valid=valid,
+#                 value=atleastone,
+#                 values={k: bool(v) for k,v in vals.items()}
+#             )
+#         return record_datum
 
-    def __init__(self, raw_record, **kwargs):
-        """Construct record"""
-        self.items = raw_record
-        if "metadata" in kwargs:
-            self.metadata = kwargs["metadata"]
-        else:
-            self.metadata = dict()
-            LOGGER.warn("Record has no metadata")
+#     def __init__(self, raw_record, **kwargs):
+#         """Construct record"""
+#         self.items = raw_record
+#         if "metadata" in kwargs:
+#             self.metadata = kwargs["metadata"]
+#         else:
+#             self.metadata = dict()
+#             LOGGER.warn("Record has no metadata")
 
-    def __setitem__(self, key, value):
-        """Set record item"""
-        if key not in self.metadata.raw_field_names:
-            raise Exception("field not in project metadata")
-        self.items[key] = value
+#     def __setitem__(self, key, value):
+#         """Set record item"""
+#         if key not in self.metadata.raw_field_names:
+#             raise Exception("field not in project metadata")
+#         self.items[key] = value
         
 
 class Field:
@@ -150,7 +149,8 @@ class Record:
     def __init__(self, **kwargs):
         """construct instance"""
         record_json = kwargs.get("record_json")
-        if record_json is None: pass
+        if record_json is None:
+            pass
         if isinstance(record_json, (bytes, str)):
             record_json = loads(record_json)
         for k,v in record_json.items():
@@ -166,13 +166,10 @@ class Record:
 
     def __new__(cls, **kwargs):
         """initialize and name field descriptors"""
-        metadata = kwargs.get("metadata")
-        if not isinstance(metadata, Metadata):
-            raise Exception("metadata must be Metadata instance")
-        for md in metadata:
-            setattr(cls, md["field_name"], Field())
         obj = super().__new__(cls)
-        obj.project = project
+        obj.project = kwargs.get("project")
+        for md in obj.project.metadata:
+            setattr(obj, md["field_name"], Field())
         return obj
 
     def __setitem__(self, field, value):

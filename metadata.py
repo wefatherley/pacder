@@ -307,19 +307,16 @@ class Metadata:
 
     def push(self):
         """Alias for `Project.connector.metadata("import", ...)`"""
-        if hasattr(self, "project"):
-            try:
-                LOGGER.info("pushing project metadata")
-                resp = self.project.connector.metadata(
-                    "import", self.dump(TextIOBase(), close_fp=False)
-                )
-            except Exception as e:
-                LOGGER.exception("push raised exception: exc=%s", e)
-                raise
-            else:
-                LOGGER.info("pushed project metadata")
+        try:
+            LOGGER.info("pushing project metadata")
+            resp = self.project.connector.metadata(
+                "import", self.dump(TextIOBase(), close_fp=False)
+            )
+        except Exception as e:
+            LOGGER.exception("push raised exception: exc=%s", e)
+            raise
         else:
-            raise Exception("Cannot push metadata changes")
+            LOGGER.info("pushed project metadata")
 
     def sql_migration(self, path, schema="", table_groups="field_type"):
         """Write a SQL migration file from metadata"""
