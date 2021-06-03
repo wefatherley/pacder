@@ -102,4 +102,4 @@ Project object
 
 .. class:: Project
 
-   This object provides the broadest access to the REDCap API.
+   This object provides 

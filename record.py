@@ -12,89 +12,6 @@ __all__ = ["Record",]
 LOGGER = getLogger(__name__)
 
 
-RecordDatum = namedtuple(
-    "RecordDatum",
-    [
-        "branching_logic",
-        "ofn",
-        "raw_value",
-        "valid",
-        "value",
-        "values"
-    ]
-)
-
-
-# class RecordDep:
-#     """Record container"""
-
-#     def __contains__(self, item):
-#         """Implement membership test operators"""
-#         pass
-
-#     def __getitem__(self, key):
-#         """Get lazily-casted data"""
-#         # TODO: the project should actually do all this stuff
-#         data = self.items[key]
-#         if isinstance(data, RecordDatum):
-#             return data
-#         ofn = self.metadata[key]["field_name"]
-#         if self.metadata[key]["field_type"] == "checkbox":
-#             checkboxes = {
-#                 k.split("___")[-1]: True if v else False
-#                 for k,v in self.items.items()
-#                 if k.startswith(ofn + "___")
-#             }
-#         else:
-#             valid = (
-#                 self.metadata[key]["text_validation_min"](data)
-#                 and self.metadata[key]["text_validation_max"](data)
-#             )
-#             value = data_type_map[
-#                 self.metadata[key][self.metadata.columns[7]]
-#             ][0](data)
-#             values = [data]
-#             record_datum = RecordDatum(
-#                 branching_logic=self.metadata[key][
-#                     "branching_logic"
-#                 ](record),
-#                 ofn=ofn,
-#                 raw_value=raw_value,
-#                 valid=valid,
-#                 value=value,
-#                 values=values
-#             )
-#             self.items[key] = record_datum
-#         for k,vals in checkboxes.items():
-#             bl = self.metadata[k]["branching_logic"](record)
-#             atleastone = any(vals.values())
-#             valid = not (atleastone and not bl) # WIP
-#             record[k] = RecordDatum(
-#                 branching_logic=bl,
-#                 ofn=ofn,
-#                 raw_value=vals,
-#                 valid=valid,
-#                 value=atleastone,
-#                 values={k: bool(v) for k,v in vals.items()}
-#             )
-#         return record_datum
-
-#     def __init__(self, raw_record, **kwargs):
-#         """Construct record"""
-#         self.items = raw_record
-#         if "metadata" in kwargs:
-#             self.metadata = kwargs["metadata"]
-#         else:
-#             self.metadata = dict()
-#             LOGGER.warn("Record has no metadata")
-
-#     def __setitem__(self, key, value):
-#         """Set record item"""
-#         if key not in self.metadata.raw_field_names:
-#             raise Exception("field not in project metadata")
-#         self.items[key] = value
-        
-
 class Field:
     """field descriptor"""
 
@@ -107,31 +24,33 @@ class Field:
         return getattr(obj, "_" + self.name, None)
 
     def __set__(self, obj, value):
-        """validate and set field value"""
+        """cast and set field value"""
         value = data_type_map[
-            self.metadata[k][self.metadata.columns[7]]
-        ][0](v)
-        # TODO: validation steps to set self.valid
+            obj.project.metadata[self.name][
+                obj.project.metadata.columns[7]
+            ]
+        ][0](value)
         setattr(obj, "_" + self.name, value)
 
     def __set_name__(self, obj_owner, name):
-        """remember what descriptor manages"""
+        """remember what field this descriptor manages"""
         self.name = name
-        self.valid = None
 
 
 class Record:
     """REDCap record container"""
     
-    def __contains__(self, field_name):
+    def __contains__(self, field):
         """implement membership test operator"""
-        if self.record_json.get(field_name):
+        if field in self.project.metadata.raw_field_names:
             return True
         return False
 
     def __delitem__(self, field):
         """delete field value"""
-        delattr(self, field)
+        if field not in self.project.metadata.raw_field_names:
+            raise Exception("field not valid")
+        setattr(self, field, None)
     
     def __eq__(self, other):
         """implement `==`"""
@@ -149,16 +68,21 @@ class Record:
     def __init__(self, **kwargs):
         """construct instance"""
         record_json = kwargs.get("record_json")
-        if record_json is None:
-            pass
-        if isinstance(record_json, (bytes, str)):
-            record_json = loads(record_json)
-        for k,v in record_json.items():
-            setattr(self, k, v)
+        if record_json is not None:
+            if isinstance(record_json, (bytes, str)):
+                record_json = loads(record_json)
+            for k,v in record_json.items():
+                setattr(self, k, v)
+        else:
+            for field in self.project.metadata.raw_field_names:
+                setattr(self, field, None)
 
     def __iter__(self):
         """return iterator of self"""
-        return (self[key] for key in self.record_json)
+        return (
+            self[field] for field
+            in self.project.metadata.raw_field_names
+        )
 
     def __len__(self):
         """return number of fields"""
@@ -168,10 +92,12 @@ class Record:
         """initialize and name field descriptors"""
         obj = super().__new__(cls)
         obj.project = kwargs.get("project")
-        for md in obj.project.metadata:
-            setattr(obj, md["field_name"], Field())
+        for field in obj.project.metadata.raw_field_names:
+            setattr(obj, field, Field())
         return obj
 
     def __setitem__(self, field, value):
         """set record field value"""
+        if field not in self.project.metadata.raw_field_names:
+            raise Exception("field not valid")
         setattr(self, field, value)

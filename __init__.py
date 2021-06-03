@@ -32,19 +32,18 @@ class Project:
         self.connector = Connector(host, path, token)
         with self.connector as conn:
             self.metadata = Metadata(
-                loads(conn.metadata("export").decode("latin-1")),
-                loads(conn.field_names("export").decode("latin-1")),
+                loads(conn.metadata("export")),
+                loads(conn.field_names("export")),
                 project=self
             )
 
-    def iter_records(self, return_container=RecordDep, **query):
-        """Yield Record instances that match query"""
-        with self.connector as conn:
-            records = loads(
-                export_content("records", **query).decode("latin-1")
-            )
-        while any(records):
-            yield return_container(records.pop())
+    def fetch(self, *args, **kwargs):
+        """returns pacder objects from export API"""
+        pass
+
+    def send(self, *args, **kwargs):
+        """sends pacder object data to import API"""
+        pass
 
     def sql_migration(self, *args, **kwargs):
         """Return SQL migration for project metadata"""

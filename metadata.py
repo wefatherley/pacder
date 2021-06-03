@@ -4,7 +4,10 @@ from html.parser import HTMLParser
 from io import TextIOBase
 from itertools import groupby, zip_longest
 from json import (
-    dump as dump_json, load as load_json, loads as loads_json
+    dump as dump_json,
+    dumps as dumps_json,
+    load as load_json, 
+    loads as loads_json
 )
 from logging import getLogger
 from re import compile, finditer, sub
@@ -310,7 +313,7 @@ class Metadata:
         try:
             LOGGER.info("pushing project metadata")
             resp = self.project.connector.metadata(
-                "import", self.dump(TextIOBase(), close_fp=False)
+                "import", dumps_json(self.raw_metadata)
             )
         except Exception as e:
             LOGGER.exception("push raised exception: exc=%s", e)
