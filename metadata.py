@@ -1,13 +1,13 @@
 """Metadata and associated objects"""
 from csv import DictReader, DictWriter
 from html.parser import HTMLParser
-from io import TextIOBase
+from io import IOBase
 from itertools import groupby, zip_longest
 from json import (
-    dump as dump_json,
-    dumps as dumps_json,
-    load as load_json, 
-    loads as loads_json
+    dump as json_dump,
+    dumps as json_dumps,
+    load as json_load, 
+    loads as json_loads
 )
 from logging import getLogger
 from re import compile, finditer, sub
@@ -32,312 +32,361 @@ COLUMNS = [
 ]
 
 
-class HTMLParser(HTMLParser):
-    """Extract metadata from HTML string"""
-
-    raw_metadata = dict()
-
-    def feed(self, data):
-        """Feed in raw metadata HTML string"""
-        if self.raw_metadata:
-            self.raw_metadata = dict()
-        super().feed(data)
-        self.raw_metadata = [v for v in self.raw_metadata.values()]
-        return self.raw_metadata
-
-    def handle_startendtag(self, tag, attrs):
-        """Extract metadata elements"""
-        if tag == "td":
-            col_name, index = attrs["for"].split("_")
-            try:
-                self.raw_metadata[index][col_name] = attrs["value"]
-            except KeyError:
-                self.raw_metadata[index] = {col_name: attrs["value"]}
-
-
-class MetadataSQL:
-    """SQL statements for rendering migration files"""
-    create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
-    create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
-    add_column = "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {};\n"
-
-
 LOAD_VARIABLE_RE = compile(r"\[[\w()]+\]")
 LOAD_OPERATOR_RE = compile(r"(?<![<\|>]{1})=|<>")
 DUMP_VARIABLE_RE = compile(r"record\['\w+'\]")
 DUMP_OPERATOR_RE = compile(r"==|!=")
 
 
-class Metadata:
-    """Container for REDCap metadata"""
-    
-    columns = COLUMNS
-    html_parser = HTMLParser()
+def dump_field_name(value):
+    """dump field_name"""
+    return value
 
-    def __contains__(self, item):
-        """Implement membership test operators"""
-        if self.raw_metadata.get(item["field_name"]):
-            return True
-        return False
 
-    def __delitem__(self, key):
-        """Delete metadatum"""
-        if "___" in key:
-            raise Exception("can't delete a single checkbox field")
-        if key not in self.raw_metadata:
-            raise KeyError
-        if self.raw_metadata[key]["field_type"] == "checkbox":
-            for c in value[
-                "select_choices_or_calculations"
-            ].split("|"):
-                del self.raw_field_names[
-                    key + "___" + c.split(",")[0].strip()
-                ]
-        del self.raw_metadata[key]
+def load_field_name(value):
+    """load field_name"""
+    return value
 
-    def __eq__(self, other):
-        """Implement `==`"""
-        if type(self) is not type(other):
-            return NotImplemented
-        if (
-            hasattr(other, "items")
-            and hasattr(other, "raw_field_names")
-            and hasattr(other, "raw_metadata")
-        ):
-            if (
-                other.items == self.items
-                and other.raw_field_names == self.raw_field_names
-                and other.raw_metadata == self.raw_metadata
-            ):
-                return True
-        return False
 
-    def __getitem__(self, key):
-        """Get lazily-casted metadatum"""
-        try:
-            return self.items[key]
-        except KeyError:
-            if key not in self.raw_field_names:
-                raise KeyError
-            value = self.raw_metadata.get(
-                self.raw_field_names[key]["original_field_name"]
+def dump_form_name(value):
+    """dump form_name"""
+    return value
+
+
+def load_form_name(value):
+    """load form_name"""
+    return value
+
+
+def dump_section_header(value):
+    """dump section_header"""
+    return value
+
+
+def load_section_header(value):
+    """load section_header"""
+    return value
+
+
+def dump_field_type(value):
+    """dump field_type"""
+    return value
+
+
+def load_field_type(value):
+    """load field_type"""
+    return value
+
+
+def dump_field_label(value):
+    """dump field_label"""
+    return value
+
+
+def load_field_label(value):
+    """load field_label"""
+    return value
+
+
+def dump_select_choices_or_calculations(value):
+    """dump select_choices_or_calculations"""
+    pass
+
+
+def load_select_choices_or_calculations(value):
+    """load select_choices_or_calculations"""
+    pass
+
+
+def dump_field_note(value):
+    """dump field_note"""
+    return value
+
+
+def load_field_note(value):
+    """load field_note"""
+    return value
+
+
+def dump_text_validation_type_or_show_slider_number(value):
+    """dump text_validation_type_or_show_slider_number"""
+    pass
+
+
+def load_text_validation_type_or_show_slider_number(value):
+    """load text_validation_type_or_show_slider_number"""
+    pass
+
+
+def dump_text_validation_min(value):
+    """dump text_validation_min"""
+    pass
+
+
+def load_text_validation_min(value):
+    """load text_validation_min"""
+    pass
+
+
+def dump_text_validation_max(value):
+    """dump text_validation_max"""
+    pass
+
+
+def load_text_validation_max(value):
+    """load text_validation_max"""
+    pass
+
+
+def dump_identifier(value):
+    """dump identifier"""
+    if value is True:
+        return "y"
+    return "n"
+
+
+def load_identifier(value):
+    """load identifier"""
+    if value == "y":
+        return True
+    return False
+
+
+def dump_branching_logic(value):
+    """dump branching_logic"""
+    if not value:
+        return ""
+    logic_fragments = zip_longest(
+        DUMP_VARIABLE_RE.split(value),
+        [m.group(0) for m in DUMP_VARIABLE_RE.finditer(value)],
+        fillvalue=""
+    )
+    value = ""
+    for oper_frag, vari_frag in logic_fragments:
+        for match in DUMP_OPERATOR_RE.finditer(oper_frag):
+            ope_str = match.group(0)
+            if ope_str == "==": ope_str = "="
+            elif ope_str == "!=": ope_str = "<>"
+            oper_frag = (
+                oper_frag[:match.start()]
+                + ope_str
+                + oper_frag[match.end():]
             )
-            self.__setitem__(key, value)
-        return self.items[key]
+        if vari_frag:
+            vari_frag = vari_frag.lstrip("record['").rstrip("']")
+            if "___" in vari_frag:
+                vari_frag = "(".join(
+                    s for s in vari_frag.split("___")
+                ) + ")"
+            vari_frag = "[" + vari_frag + "]"
+        value += oper_frag + vari_frag
+    return value
 
-    def __init__(self, raw_metadata, raw_field_names, **kwargs):
-        """Contruct attributes"""
-        self.items = dict()
-        self.raw_metadata = {d["field_name"]: d for d in raw_metadata}
-        self.raw_field_names = {
-            d["export_field_name"]: d for d in raw_field_names
-        }
+
+def load_branching_logic(value):
+    """load branching_logic"""
+    if not value:
+        return ""
+    logic_fragments = zip_longest(
+        LOAD_VARIABLE_RE.split(value),
+        [m.group(0) for m in LOAD_VARIABLE_RE.finditer(value)],
+        fillvalue=""
+    )
+    value = ""
+    for oper_frag, vari_frag in logic_fragments:
+        for match in LOAD_OPERATOR_RE.finditer(oper_frag):
+            ope_str = match.group(0)
+            if ope_str == "=":
+                ope_str = "=="
+            elif ope_str == "<>":
+                ope_str = "!="
+            oper_frag = (
+                oper_frag[:match.start()]
+                + ope_str
+                + oper_frag[match.end():]
+            )
+        if vari_frag:
+            vari_frag = vari_frag.strip("[]")
+            if "(" in vari_frag and ")" in vari_frag:
+                vari_frag = "___".join(
+                    s.strip(")") for s in vari_frag.split("(")
+                )
+            vari_frag = "record['" + vari_frag + "']"
+        value += oper_frag + vari_frag
+    return value
+
+
+def dump_required_field(value):
+    """dump required_field"""
+    if value is True:
+        return "y"
+    return "n"
+
+
+def load_required_field(value):
+    """load required_field"""
+    if value == "y":
+        return True
+    return False
+
+
+def dump_custom_alignment(value):
+    """dump custom_alignment"""
+    pass
+
+
+def load_custom_alignment(value):
+    """load custom_alignment"""
+    pass
+
+
+def dump_question_number(value):
+    """dump question_number"""
+    pass
+
+
+def load_question_number(value):
+    """load question_number"""
+    pass
+
+
+def dump_matrix_group_name(value):
+    """dump matrix_group_name"""
+    pass
+
+
+def load_matrix_group_name(value):
+    """load matrix_group_name"""
+    pass
+
+
+def dump_matrix_ranking(value):
+    """dump matrix_ranking"""
+    pass
+
+
+def load_matrix_ranking(value):
+    """load matrix_ranking"""
+    pass
+
+
+def dump_field_annotation(value):
+    """dump field_annotation"""
+    return value
+
+
+def load_field_annotation(value):
+    """load field_annotation"""
+    return value
+
+
+def dump_metadatum(value):
+    """load metadatum"""
+    for column in COLUMNS:
+        value[column] = eval(
+            "dump_{}({})".format(column, value[column])
+        )
+    return value
+
+
+def load_metadatum(value):
+    """load metadatum"""
+    if sorted(value.keys()) != sorted(COLUMNS):
+        raise Exception("invalid metadatum")
+    for column in COLUMNS:
+        value[column] = eval(
+            "load_{}({})".format(column, value[column])
+        )
+    return value
+
+
+TemplateHTML = """
+    <!DOCTYPE html>
+    <html>
+        <head>
+        </head>
+        <body>
+        <table id="metadata">{}</table>
+        </body>
+    </html>
+""".strip()
+
+
+class HTMLParser(HTMLParser):
+    """extract metadata from HTML string"""
+    pass
+
+
+class TemplateSQL:
+    """statements for rendering SQL migration"""
+    create_schema = "CREATE SCHEMA IF NOT EXISTS {};\n"
+    create_table = "CREATE TABLE IF NOT EXISTS {}();\n"
+    add_column = "ALTER TABLE {} ADD COLUMN IF NOT EXISTS {} {};\n"
+
+
+class Metadata(dict):
+    """container for REDCap metadata"""
+
+    def __init__(self, raw_metadata, **kwargs):
+        """construct instance"""
         self.project = kwargs.get("project")
-
-    def __iter__(self):
-        """Return raw metadata iterator"""
-        return (self[key] for key in self.raw_field_names)
-
-    def __len__(self):
-        """Return field count"""
-        return len(self.raw_metadata)
-
-    def __setitem__(self, key, value):
-        """Set metadata field"""
-        if "field_name" not in value:
-            value["field_name"] = key
-        if list(value.keys()) != self.columns:
-            raise Exception("new field missing columns")
-        if value["field_type"] in {"checkbox", "radio"}:
-            value["select_choices_or_calculations"] = {
-                int(pair[0].strip()): pair[1].strip()
-                for pair in [
-                    choice.split(",") for choice in value[
-                        "select_choices_or_calculations"
-                    ].split("|")
-                ]
-            }
-        value["branching_logic"] = self.load_logic(
-            value["branching_logic"], as_func=True
-        )
-        value["required_field"] = False
-        if value["required_field"] == "y":
-            value["required_field"] = True
-        value["identifier"] = False
-        if value["identifier"] == "y":
-            value["identifier"] = True
-        self.items[key] = value
-        LOGGER.info(
-            "added to metadata: field_name=%s, field_type=%s",
-            value["field_name"],
-            value["field_type"]
-        )
-
-    @classmethod
-    def load_calculation(cls, calculation, as_func=False):
-        """Return evaluable field calculation"""
-        raise NotImplementedError
-
-    @classmethod
-    def dump_calculation(cls, calculation):
-        """Return evaluable field calculation"""
-        raise NotImplementedError
-
-    @classmethod
-    def load_logic(cls, logic, as_func=False):
-        """Return evaluable branching logic"""
-        if not logic:
-            if as_func: return lambda record: None
-            return ""
-        logic_fragments = zip_longest(
-            LOAD_VARIABLE_RE.split(logic),
-            [m.group(0) for m in LOAD_VARIABLE_RE.finditer(logic)],
-            fillvalue=""
-        )
-        logic = ""
-        for oper_frag, vari_frag in logic_fragments:
-            for match in LOAD_OPERATOR_RE.finditer(oper_frag):
-                ope_str = match.group(0)
-                if ope_str == "=": ope_str = "=="
-                elif ope_str == "<>": ope_str = "!="
-                oper_frag = (
-                    oper_frag[:match.start()]
-                    + ope_str
-                    + oper_frag[match.end():]
-                )
-            if vari_frag:
-                vari_frag = vari_frag.strip("[]")
-                if "(" in vari_frag and ")" in vari_frag:
-                    vari_frag = "___".join(
-                        s.strip(")") for s in vari_frag.split("(")
-                    )
-                vari_frag = "record['" + vari_frag + "']"
-            logic += oper_frag + vari_frag
-        if as_func:
-            return lambda record: eval(logic)
-        return logic
-
-    @classmethod
-    def dump_logic(cls, logic):
-        """Convert Python logic syntax to REDCap logic syntax"""
-        if not logic:
-            return ""
-        logic_fragments = zip_longest(
-            DUMP_VARIABLE_RE.split(logic),
-            [m.group(0) for m in DUMP_VARIABLE_RE.finditer(logic)],
-            fillvalue=""
-        )
-        logic = ""
-        for oper_frag, vari_frag in logic_fragments:
-            for match in DUMP_OPERATOR_RE.finditer(oper_frag):
-                ope_str = match.group(0)
-                if ope_str == "==": ope_str = "="
-                elif ope_str == "!=": ope_str = "<>"
-                oper_frag = (
-                    oper_frag[:match.start()]
-                    + ope_str
-                    + oper_frag[match.end():]
-                )
-            if vari_frag:
-                vari_frag = vari_frag.lstrip("record['").rstrip("']")
-                if "___" in vari_frag:
-                    vari_frag = "(".join(
-                        s for s in vari_frag.split("___")
-                    ) + ")"
-                vari_frag = "[" + vari_frag + "]"
-            logic += oper_frag + vari_frag
-        return logic
-
-    def dump(self, fp, fmt="csv", close_fp=True):
-        """Dump formatted metadata to file pointer"""
-        if len(self) == 0:
-            raise Exception("cannot dump empty metadata")
-        if isinstance(fp, str):
-            if fmt == "csv": fp = open(fp, "w", newline="")
-            else: fp = open(fp, "w")
-        if fmt == "csv":
-            writer = DictWriter(fp, fieldnames=COLUMNS)
-            writer.writeheader()
-            for metadatum in self.raw_metadata:
-                writer.writerow(metadatum)
-        elif fmt == "json":
-            dump_json(self.raw_metadata, fp)
-        elif fmt == "html":
-            td = '<td><input type="text" for="{}" value="{}"></td>'
-            table = (
-                '<tr><td></td>'
-                + "".join('<td>{}</td>'.format(c) for c in COLUMNS)
-                + '</tr>'
-            )
-            for i in range(len(self.raw_metadata)):
-                row = ""
-                for c in COLUMNS:
-                    metadatum = self.raw_metadata[i][c]
-                    c += "_{}".format(str(i))
-                    row += td.format(c, metadatum)
-                table += (
-                    '<tr><td><input type="checkbox"></td>'
-                    + row
-                    + '</tr>'
-                )
-            fp.write(HTML_TABLE_RE.sub(html))
-        else:
-            raise Exception("unsupported dump format")
-        if not close_fp: return fp
-        fp.close()
-
-    def load(self, fp, fmt="csv"):
-        """Load formatted metadata from file pointer"""
-        if isinstance(fp, str):
-            if fmt == "csv": fp = open(fp, "r", newline="")
-            else: fp = open(fp, "r")
-        if fmt == "csv":
-            with fp:
-                reader = DictReader(fp, fieldnames=COLUMNS)
-                for row in reader:
-                    self[row["field_name"]] = row
-        elif fmt == "json":
-            with fp:
-                metadata = load_json(fp)
-            while any(metadata):
-                metadatum = metadata.pop()
-                self[metadatum["field_name"]] = metadatum
-        elif fmt == "html":
-            with fp:
-                self.raw_metadata = self.html_parser.feed(fp.read())
-        else:
-            raise Exception("unsupported load format")
-
-    def push(self):
-        """Alias for `Project.connector.metadata("import", ...)`"""
-        try:
-            LOGGER.info("pushing project metadata")
-            resp = self.project.connector.metadata(
-                "import", dumps_json(self.raw_metadata)
-            )
-        except Exception as e:
-            LOGGER.exception("push raised exception: exc=%s", e)
-            raise
-        else:
-            LOGGER.info("pushed project metadata")
-
-    def sql_migration(self, path, schema="", table_groups="field_type"):
-        """Write a SQL migration file from metadata"""
-        if schema: schema += "."
-        with open(path, "w") as fp:
-            fp.write(MetadataSQL.create_schema.format(schema))
-            if table_groups not in COLUMNS:
-                raise Exception("invalid table grouping :/")
-            for table, columns in groupby(
-                sorted(self.raw_metadata, key=lambda d: d[table_groups]),
-                key=lambda d: d[table_groups]
-            ):
-                fp.write(MetadataSQL.create_table.format(schema + table))
-                for c in columns:
-                    fp.write(
-                        MetadataSQL.add_column.format(
-                            schema + table,
-                            c["field_name"],
-                            data_type_map[c[COLUMNS[7]]][2]
+        super().__init__()
+        for metadatum in raw_metadata:
+            metadatum = load_metadatum(metadatum)
+            if metadatum[COLUMNS[3]] == "checkbox":
+                for value in metadatum[COLUMNS[5]]:
+                    self[
+                        metadatum[COLUMNS[0]] + "___{}".format(
+                            str(value)
                         )
-                    )
+                    ] = metadatum
+            else:
+                self[metadatum[COLUMNS[0]]] = metadatum
+
+    def __setitem__(self, field, value):
+        """set metadatum"""
+        if field not in value:
+            value[COLUMNS[0]] = field
+        super().__setitem__(field, load_metadatum(value))
+
+    def csv(self):
+        """return CSV string"""
+        csv = ", ".join(COLUMNS) + "\n"
+        for row in self.raw():
+            csv += ", ".join(row.values()) + "\n"
+        return csv
+
+    def html(self, writable=False):
+        """return HTML string"""
+        pass
+
+    def json(self):
+        """return JSON string"""
+        return json_dumps(self.raw())
+
+    def raw(self, key=COLUMNS[1]):
+        """return non-type-casted list of dictionaries"""
+        return sorted(
+            set(dump_metadatum(md) for md in self.values()),
+            key=lambda d: d[key]
+        )
+
+    def sql(self, schema="", table_groups=COLUMNS[3]):
+        """return SQL migration string"""
+        sql = ""
+        if schema:
+            schema += "."
+        sql += TemplateSQL.create_schema.format(schema)
+        if table_groups not in COLUMNS:
+            raise Exception("invalid table grouping")
+        for table, columns in groupby(
+            sorted(self.items(), key=lambda d: d[table_groups]),
+            key=lambda d: d[table_groups]
+        ):
+            sql += TemplateSQL.create_table.format(schema + table)
+            for c in columns:
+                sql += TemplateSQL.add_column.format(
+                    schema + table,
+                    c["field_name"],
+                    data_type_map[c[COLUMNS[7]]][2]
+                )

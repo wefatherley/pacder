@@ -16,6 +16,10 @@ LOGGER = getLogger(__name__)
 class Project:
     """Project container"""
 
+    def __delitem__(self, key):
+        """"""
+        pass
+
     def __enter__(self):
         """Enter context"""
         if self.connector.sock is None:
@@ -27,6 +31,10 @@ class Project:
         self.metadata.push()
         self.connector.close()
 
+    def __getitem__(self, key):
+        """"""
+        pass
+
     def __init__(self, host, path, token):
         """Constructor"""
         self.connector = Connector(host, path, token)
@@ -37,14 +45,6 @@ class Project:
                 project=self
             )
 
-    def fetch(self, *args, **kwargs):
-        """returns pacder objects from export API"""
+    def __setitem__(self, key, value):
+        """"""
         pass
-
-    def send(self, *args, **kwargs):
-        """sends pacder object data to import API"""
-        pass
-
-    def sql_migration(self, *args, **kwargs):
-        """Return SQL migration for project metadata"""
-        return self.metadata.sql_migration(*args, **kwargs)

@@ -42,62 +42,59 @@ class Record:
     
     def __contains__(self, field):
         """implement membership test operator"""
-        if field in self.project.metadata.raw_field_names:
+        if field in self.project.metadata:
             return True
         return False
 
     def __delitem__(self, field):
         """delete field value"""
-        if field not in self.project.metadata.raw_field_names:
-            raise Exception("field not valid")
+        if field not in self.project.metadata:
+            raise Exception("no such field")
         setattr(self, field, None)
     
     def __eq__(self, other):
-        """implement `==`"""
+        """implement equality test operator"""
         if type(self) is not type(other):
             return NotImplemented
-        if hasattr(other, "record_json"):
-            if other.record_json == self.record_json:
-                return True
+        if all(
+            self.get(field) == other.get(field)
+            for field in self.project.metadata
+        ):
+            return True
         return False
 
     def __getitem__(self, field):
         """return field"""
+        if field not in self.project.metadata:
+            raise Exception("no such field")
         return getattr(self, field)
 
-    def __init__(self, **kwargs):
+    def __init__(self, raw_record: dict) -> None:
         """construct instance"""
-        record_json = kwargs.get("record_json")
-        if record_json is not None:
-            if isinstance(record_json, (bytes, str)):
-                record_json = loads(record_json)
-            for k,v in record_json.items():
+        for k,v in raw_record.items():
+            if k in self.project.metadata:
                 setattr(self, k, v)
-        else:
-            for field in self.project.metadata.raw_field_names:
-                setattr(self, field, None)
+            else:
+                raise Exception("raw record doesn't match metadata")
 
     def __iter__(self):
         """return iterator of self"""
-        return (
-            self[field] for field
-            in self.project.metadata.raw_field_names
-        )
+        return (self[field] for field in self.project.metadata)
 
     def __len__(self):
         """return number of fields"""
-        return len(self.record_json)
+        return len(self.project.metadata)
 
     def __new__(cls, **kwargs):
         """initialize and name field descriptors"""
         obj = super().__new__(cls)
         obj.project = kwargs.get("project")
-        for field in obj.project.metadata.raw_field_names:
+        for field in obj.project.metadata:
             setattr(obj, field, Field())
         return obj
 
     def __setitem__(self, field, value):
         """set record field value"""
-        if field not in self.project.metadata.raw_field_names:
-            raise Exception("field not valid")
+        if field not in self.project.metadata:
+            raise Exception("no such field")
         setattr(self, field, value)
