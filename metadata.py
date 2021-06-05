@@ -327,9 +327,12 @@ class TemplateSQL:
 class Metadata(dict):
     """container for REDCap metadata"""
 
-    def __init__(self, raw_metadata, **kwargs):
+    def __init__(self, raw_metadata=dict(), **kwargs):
         """construct instance"""
         self.project = kwargs.get("project")
+        if self.project and not raw_metadata:
+            with self.project.connector as conn:
+                raw_metadata = json_loads(conn.metadata("export"))
         super().__init__()
         for metadatum in raw_metadata:
             metadatum = load_metadatum(metadatum)
