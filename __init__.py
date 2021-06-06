@@ -32,7 +32,22 @@ class Project:
 
     def __getitem__(self, key):
         """fetch (export) project resource"""
-        pass
+        if key == "metadata":
+            def closed(proj=self, **kwargs):
+                if not kwargs:
+                    return proj.metadata
+        elif key == "record":
+            def closed(proj=self, **kwargs):
+                if not kwargs:
+                    return Record(project=proj)
+                else:
+                    with proj.connector as conn:
+                        records = conn.records("export", **kwargs)
+                    return [
+                        Record(r, project=proj)
+                        for r in loads(records)
+                    ]
+        return closed
 
     def __init__(self, host, path, token):
         """constructor"""
