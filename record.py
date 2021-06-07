@@ -69,7 +69,7 @@ class Record:
             raise Exception("no such field")
         return getattr(self, field)
 
-    def __init__(self, raw_record: dict) -> None:
+    def __init__(self, raw_record):
         """construct instance"""
         for k,v in raw_record.items():
             if k in self.project.metadata:
