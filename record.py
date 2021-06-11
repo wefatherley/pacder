@@ -1,6 +1,6 @@
 """Record and related objects"""
 from collections import namedtuple
-from json import loads
+from json import (loads as json_loads, dumps as json_dumps)
 from logging import getLogger
 
 from .util import data_type_map
@@ -69,13 +69,16 @@ class Record:
             raise Exception("no such field")
         return getattr(self, field)
 
-    def __init__(self, raw_record):
+    def __init__(self, raw_record=None):
         """construct instance"""
-        for k,v in raw_record.items():
-            if k in self.project.metadata:
-                setattr(self, k, v)
-            else:
-                raise Exception("raw record doesn't match metadata")
+        if raw_record is not None:
+            for k,v in raw_record.items():
+                if k in self.project.metadata:
+                    setattr(self, k, v)
+                else:
+                    raise Exception(
+                        "raw record doesn't match metadata"
+                    )
 
     def __iter__(self):
         """return iterator of self"""
@@ -93,8 +96,22 @@ class Record:
             setattr(obj, field, Field())
         return obj
 
+    def __next__(self):
+        """return next item"""
+        pass
+
     def __setitem__(self, field, value):
         """set record field value"""
         if field not in self.project.metadata:
             raise Exception("no such field")
         setattr(self, field, value)
+
+    def __str__(self):
+        """return JSON string of self"""
+        return json_dumps(
+            {
+                data_type_map[self.project.metadata[field][
+                    self.project.metadata.columns[7]
+                ]][1](self[field])
+            } for field in self.project.metadata
+        )
