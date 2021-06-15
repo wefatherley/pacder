@@ -5,7 +5,7 @@ from queue import Queue
 
 from .connector import Connector
 from .metadata import Metadata
-from .record import Record
+from .record import Field, Record
 
 
 __all__ = ["Connector", "Metadata", "Project", "Record",]
@@ -49,11 +49,17 @@ class Project:
 
     def __init__(self, host, path, token, **kwargs):
         """constructor"""
-        self.connector = Connector(host, path, token)
-        self.metadata = Metadata(project=self)
-        self.autocommit = kwargs.get("autocommit", False)
-        if not self.autocommit:
-            self.request_queue = Queue()
+        try:
+            self.connector = Connector(host, path, token)
+            self.metadata = Metadata(project=self)
+        except: raise # logging etc
+        else:
+            Record.project = self
+            field_desc = Field()
+            for field in self.metadata.field_map:
+                setattr(Record, field, field_desc)
+                field_desc.__set_name__(Record, field)
+            self.record_cls = Record
 
     def __setitem__(self, key, value):
         """send (import) project resource"""
@@ -61,22 +67,14 @@ class Project:
             value = "[" + ", ".join(str(r) for r in value) + "]"
         else:
             value = "[" + str(value) + "]"
-        if self.autocommit:
-            with self.connector as conn:
-                conn.import_content(key, value)
-        else:
-            self.request_queue.put(("import_content", key, value))
             
     def close(self):
         """clean up self"""
-        while self.request_queue.not_empty():
-            task = self.request_queue.get()
-            with self.connector as conn:
-                resp = getattr(conn, task[0])(task[1], task[2])
+        pass
 
     def factory(self, obj):
         """return a pacder object (i.e. REDCap abstraction)"""
         if obj == "record":
-            return Record(project=self)
+            return self.record_cls
         else:
             raise NotImplemented

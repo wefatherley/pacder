@@ -102,4 +102,4 @@ Project object
 
 .. class:: Project
 
-   This object provides 
+   This object provides ...

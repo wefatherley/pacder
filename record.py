@@ -54,7 +54,7 @@ class Record:
     
     def __eq__(self, other):
         """implement equality test operator"""
-        if type(self) is not type(other):
+        if type(self) != type(other):
             return NotImplemented
         if all(
             self.get(field) == other.get(field)
@@ -88,13 +88,14 @@ class Record:
         """return number of fields"""
         return len(self.project.metadata)
 
-    def __new__(cls, **kwargs):
-        """initialize and name field descriptors"""
-        obj = super().__new__(cls)
-        obj.project = kwargs.get("project")
-        for field in obj.project.metadata:
-            setattr(obj, field, Field())
-        return obj
+    # def __new__(cls, **kwargs):
+    #     """initialize and name field descriptors"""
+    #     project = kwargs.pop("project")
+    #     obj = super().__new__(cls)
+    #     obj.project = project
+    #     for field in obj.project.metadata:
+    #         setattr(obj, field, Field())
+    #     return obj
 
     def __next__(self):
         """return next item"""

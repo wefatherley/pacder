@@ -23,7 +23,7 @@ class MockAPIHandler(server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         """Handle POST requests"""
-        url = parse.urlparse(self.path)
+        url = urlparse(self.path)
         query = parse_qs(url.query)
 
         # resources for testing pacder.connector.BaseConnector

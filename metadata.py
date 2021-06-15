@@ -90,12 +90,12 @@ def load_field_label(value):
 
 def dump_select_choices_or_calculations(value):
     """dump select_choices_or_calculations"""
-    pass
+    return value
 
 
 def load_select_choices_or_calculations(value):
     """load select_choices_or_calculations"""
-    pass
+    return value
 
 
 def dump_field_note(value):
@@ -110,32 +110,32 @@ def load_field_note(value):
 
 def dump_text_validation_type_or_show_slider_number(value):
     """dump text_validation_type_or_show_slider_number"""
-    pass
+    return value
 
 
 def load_text_validation_type_or_show_slider_number(value):
     """load text_validation_type_or_show_slider_number"""
-    pass
+    return value
 
 
 def dump_text_validation_min(value):
     """dump text_validation_min"""
-    pass
+    return value
 
 
 def load_text_validation_min(value):
     """load text_validation_min"""
-    pass
+    return value
 
 
 def dump_text_validation_max(value):
     """dump text_validation_max"""
-    pass
+    return value
 
 
 def load_text_validation_max(value):
     """load text_validation_max"""
-    pass
+    return value
 
 
 def dump_identifier(value):
@@ -232,42 +232,42 @@ def load_required_field(value):
 
 def dump_custom_alignment(value):
     """dump custom_alignment"""
-    pass
+    return value
 
 
 def load_custom_alignment(value):
     """load custom_alignment"""
-    pass
+    return value
 
 
 def dump_question_number(value):
     """dump question_number"""
-    pass
+    return value
 
 
 def load_question_number(value):
     """load question_number"""
-    pass
+    return value
 
 
 def dump_matrix_group_name(value):
     """dump matrix_group_name"""
-    pass
+    return value
 
 
 def load_matrix_group_name(value):
     """load matrix_group_name"""
-    pass
+    return value
 
 
 def dump_matrix_ranking(value):
     """dump matrix_ranking"""
-    pass
+    return value
 
 
 def load_matrix_ranking(value):
     """load matrix_ranking"""
-    pass
+    return value
 
 
 def dump_field_annotation(value):
@@ -283,9 +283,8 @@ def load_field_annotation(value):
 def dump_metadatum(value):
     """load metadatum"""
     for column in COLUMNS:
-        value[column] = eval(
-            "dump_{}({})".format(column, value[column])
-        )
+        func = eval("dump_{}".format(column))
+        value[column] = func(value[column])
     return value
 
 
@@ -294,9 +293,8 @@ def load_metadatum(value):
     if sorted(value.keys()) != sorted(COLUMNS):
         raise Exception("invalid metadatum")
     for column in COLUMNS:
-        value[column] = eval(
-            "load_{}({})".format(column, value[column])
-        )
+        func = eval("load_{}".format(column))
+        value[column] = func(value[column])
     return value
 
 
@@ -327,30 +325,37 @@ class TemplateSQL:
 class Metadata(dict):
     """container for REDCap metadata"""
 
+    def __contains__(self, field):
+        """implement `in` operator"""
+        if field in self.field_map:
+            return True
+        return False
+
+    def __getitem__(self, field):
+        """get metadatum"""
+        return super().__getitem__(
+            self.field_map[field]["original_field_name"]
+        )
+
     def __init__(self, raw_metadata=dict(), **kwargs):
         """construct instance"""
         self.project = kwargs.get("project")
         if self.project and not raw_metadata:
             with self.project.connector as conn:
                 raw_metadata = json_loads(conn.metadata("export"))
+                field_map = json_loads(conn.field_names("export"))
         super().__init__()
         for metadatum in raw_metadata:
-            metadatum = load_metadatum(metadatum)
-            if metadatum[COLUMNS[3]] == "checkbox":
-                for value in metadatum[COLUMNS[5]]:
-                    self[
-                        metadatum[COLUMNS[0]] + "___{}".format(
-                            str(value)
-                        )
-                    ] = metadatum
-            else:
-                self[metadatum[COLUMNS[0]]] = metadatum
+            self[metadatum[COLUMNS[0]]] = load_metadatum(metadatum)
+        self.field_map = {
+            field["export_field_name"]: field for field in field_map
+        }
 
     def __setitem__(self, field, value):
         """set metadatum"""
         if field not in value:
             value[COLUMNS[0]] = field
-        super().__setitem__(field, load_metadatum(value))
+        super().__setitem__(field, value)
 
     def csv(self):
         """return CSV string"""
@@ -370,7 +375,7 @@ class Metadata(dict):
     def raw(self, key=COLUMNS[1]):
         """return non-type-casted list of dictionaries"""
         return sorted(
-            set(dump_metadatum(md) for md in self.values()),
+            (dump_metadatum(md) for md in self.values()),
             key=lambda d: d[key]
         )
 
@@ -379,11 +384,11 @@ class Metadata(dict):
         sql = ""
         if schema:
             schema += "."
-        sql += TemplateSQL.create_schema.format(schema)
+            sql += TemplateSQL.create_schema.format(schema)
         if table_groups not in COLUMNS:
             raise Exception("invalid table grouping")
         for table, columns in groupby(
-            sorted(self.items(), key=lambda d: d[table_groups]),
+            sorted(self.raw(), key=lambda d: d[table_groups]),
             key=lambda d: d[table_groups]
         ):
             sql += TemplateSQL.create_table.format(schema + table)
@@ -393,3 +398,4 @@ class Metadata(dict):
                     c["field_name"],
                     data_type_map[c[COLUMNS[7]]][2]
                 )
+        return sql
