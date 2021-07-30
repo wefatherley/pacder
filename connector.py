@@ -1,6 +1,5 @@
 """Connector objects"""
 from http import client, HTTPStatus
-from io import IOBase
 from logging import getLogger
 from urllib.parse import urlencode
 
@@ -29,6 +28,7 @@ class BaseConnector(client.HTTPSConnection):
     """HTTP methods container"""
 
     path_stack = []
+    max_redirects = 50
     static_headers = {
         "accept": "application/json",
         "content-type": "application/x-www-form-urlencoded",
@@ -78,6 +78,9 @@ class BaseConnector(client.HTTPSConnection):
                     "response received sucessfully: octets=%s",
                     response.headers.get("content-length", "NA")
                 )
+                if self.path_stack[-1] != self.path_stack[0]:
+                    self.path_stack.append(self.path_stack[0])
+                self.max_redirects = 50
                 return response
             elif (
                 HTTPStatus.MULTIPLE_CHOICES
@@ -93,7 +96,12 @@ class BaseConnector(client.HTTPSConnection):
                 self.path_stack.append(
                     response.headers.get("location")
                 )
-                self.post(body=body)
+                if self.max_redirects > 0:
+                    self.max_redirects -= 1
+                    self.post(body=body)
+                else:
+                    LOGGER.exception("too many redirects")
+                    raise Exception("too many redirects")
             elif response.status >= HTTPStatus.BAD_REQUEST:
                 # 400s and 500s compacted into one elif for now
                 # TODO: perform certain retries
@@ -111,19 +119,18 @@ class Connector(BaseConnector):
     def __init__(self, host, path, token, **kwargs):
         """Construct interface"""
         super().__init__(host)
-        if path is None or token is None:
-            raise RuntimeError("path and/or token required")
         self.path_stack.append(path)
-        self._parameters = {
+        self.session_parameters = {
             "token": token, "format": kwargs.pop("format", "json")
         }
         for k,v in kwargs.items():
             if k in PARAMETERS:
-                self._parameters[k] = v
+                self.session_parameters[k] = v
+            else: raise Exception("bad API parameter")
 
     def url_encode(self, **parameters):
         """Return url-encoded body bytes"""
-        body = self._parameters
+        body = self.session_parameters.copy()
         for key, value in parameters.items():
             if key not in PARAMETERS:
                 raise Exception("bad API parameter")
